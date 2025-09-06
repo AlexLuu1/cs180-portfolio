@@ -14,17 +14,6 @@ header {
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 
-h1 {
-  color: #fff;
-}
-h2 {
-  color: #333;
-}
-h3 {
-  color: #333;
-  margin-top: 80px;
-}
-
 main {
   padding: 20px;
   width: 960px;
@@ -59,11 +48,18 @@ a:hover {
   color: #0056b3;
 }
 
+.back-home {
+  margin-bottom: 40px;
+}
+
+.project-content .section {
+  margin-bottom: 40px;
+}
+
 .project-content .image-gallery {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 15px;
-  margin-top: 20px;
+  gap: 20px;
 }
 
 .project-content .image-gallery img {

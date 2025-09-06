@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CS 180 Portfolio: Project 1</title>
+    <link rel="stylesheet" href="../style.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Alex Luu's CS 180 Project Portfolio</h1>
+      <h2>Project 1: Images of the Russian Empire</h2>
+    </header>
+    <main class="project-content">
+      <p class="back-home"><a href="../index.html">&larr; Back to Home</a></p>
+
+      <div class="section">
+        <h2>Project Overview</h2>
+        <p>This project focuses on reconstructing color photographs from the Prokudin-Gorskii collection. The collection contains three separate black-and-white images of a scene, each through a different color filter: red, green, and blue. The primary challenge of this project is to take these three individual color channel images and digitally align them. By correctly layering the red, green, and blue channels, we can recreate the full-color photograph.</p>
+      </div>
+
+      <div class="section">
+        <h2>My Approach</h2>
+        <p>My approach to aligning the color channels begins with a exhaustively search. For smaller images, this method exhaustively tests all possible pixel alignments within a predefined window (e.g., <code>[-15, 15]</code> pixels) for both the horizontal and vertical axes. To evaluate the quality of each alignment, I implemented two standard image similarity metrics: the L2 Norm and Normalized Cross-Correlation (NCC). Both metrics proved effective for the low-resolution images.</p>
+        <p>However, this exhaustive search is slow for high-resolution images. To address this, I implemented a recursive image pyramid search algorithm. If the image was small enough, it would use the exhaustively method. If the image was too large, it would downsize the image by a factor of two and call the alignment function recursively on this smaller image. The resulting displacement would then be scaled up and used as a starting point for a more refined search on the original, larger image.</p>
+      </div>
+
+      <div class="section">
+        <h2>Problems Encountered</h2>
+        <p>While writing the alignment functions, I realized the borders of the images varied too much resulting in a poor score calculation. To fix this, I cropped the images by 15% on each edge, resulting in a 30% reduced height and 30% reduced width. This resulted in much better alignments and a faster algorithm.</p>
+        <p>A problem arose with the <code>emir.tif</code> image, which failed to align correctly due to brightness differences between its color channels. I initially tried to normalize the images by mean and standard deviation and then apply NCC, but it did not work. To fix this issue, I created a average filter that uses a local average of pixels nearby. I then normalized the image by dividing the original image by the local average image. This created a proportional representation of the image that removed brightness differences and fixed the issue. After applying NCC, this method worked well.</p>
+        <p>All images below were produced using the recursive pyramid search (with the exhaustively search for the base case) and proportional NCC metric.</p>
+      </div>
+
+      <div class="section">
+        <h2>Required Images</h2>
+        <div class="image-gallery">
+          <div>
+            <img src="images/cathedral.jpg" alt="Cathedral" />
+            <p>cathedral.jpg<br />R: (12, 3), G: (5, 2)</p>
+          </div>
+          <div>
+            <img src="images/monastery.jpg" alt="Monastery" />
+            <p>monastery.jpg<br />R: (3, 2), G: (-3, 2)</p>
+          </div>
+          <div>
+            <img src="images/tobolsk.jpg" alt="Tobolsk" />
+            <p>tobolsk.jpg<br />R: (6, 3), G: (3, 3)</p>
+          </div>
+          <div>
+            <img src="images/church.jpg" alt="Church" />
+            <p>church.tif<br />R: (58, -4), G: (25, 4)</p>
+          </div>
+          <div>
+            <img src="images/emir.jpg" alt="Emir" />
+            <p>emir.tif<br />R: (106, 41), G: (49, 23)</p>
+          </div>
+          <div>
+            <img src="images/harvesters.jpg" alt="Harvesters" />
+            <p>harvesters.tif<br />R: (124, 11), G: (61, 15)</p>
+          </div>
+          <div>
+            <img src="images/icon.jpg" alt="Icon" />
+            <p>icon.tif<br />R: (88, 23), G: (39, 16)</p>
+          </div>
+          <div>
+            <img src="images/italil.jpg" alt="Italil" />
+            <p>italil.tif<br />R: (77, 36), G: (39, 22)</p>
+          </div>
+          <div>
+            <img src="images/lastochikino.jpg" alt="Lastochikino" />
+            <p>lastochikino.tif<br />R: (76, -9), G: (-3, -2)</p>
+          </div>
+          <div>
+            <img src="images/lugano.jpg" alt="Lugano" />
+            <p>lugano.tif<br />R: (91, -29), G: (41, -17)</p>
+          </div>
+          <div>
+            <img src="images/melons.jpg" alt="Melons" />
+            <p>melons.tif<br />R: (179, 11), G: (87, 12)</p>
+          </div>
+          <div>
+            <img src="images/self_portrait.jpg" alt="Self Portrait" />
+            <p>self_portrait.tif<br />R: (180, 37), G: (81, 30)</p>
+          </div>
+          <div>
+            <img src="images/siren.jpg" alt="Siren" />
+            <p>siren.tif<br />R: (97, -24), G: (50, -6)</p>
+          </div>
+          <div>
+            <img src="images/three_generations.jpg" alt="Three Generations" />
+            <p>three_generations.tif<br />R: (114, 10), G: (54, 12)</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>My Chosen Images</h2>
+        <div class="image-gallery">
+          <div>
+            <img
+              src="images/master-pnp-prok-00100-00161a.jpg"
+              alt="Na Uralie"
+            />
+            <p>Na Uralie<br />R: (93, 59), G: (40, 32)</p>
+          </div>
+          <div>
+            <img src="images/master-pnp-prok-00100-00189a.jpg" alt="Kurmy" />
+            <p>Kurmy<br />R: (116, -38), G: (25, -18)</p>
+          </div>
+          <div>
+            <img
+              src="images/master-pnp-prok-00200-00211a.jpg"
+              alt="Detali sobora v Milanie"
+            />
+            <p>Detali sobora v Milanie<br />R: (124, 24), G: (57, 13)</p>
+          </div>
+          <div>
+            <img
+              src="images/master-pnp-prok-00300-00327a.jpg"
+              alt="Obshchii vid sela Soroki s ostrova"
+            />
+            <p>
+              Obshchii vid sela Soroki s ostrova<br />R: (111, 27), G: (29, 13)
+            </p>
+          </div>
+        </div>
+      </div>
+    </main>
+    <footer>
+      <p>&copy; 2025 Alex Luu</p>
+    </footer>
+  </body>
+</html>
