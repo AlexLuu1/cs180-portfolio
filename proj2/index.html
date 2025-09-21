@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CS 180 Portfolio: Project 2</title>
+    <link rel="stylesheet" href="../style.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Alex Luu's CS 180 Project Portfolio</h1>
+      <h2>Project 2: Fun with Filters and Frequencies</h2>
+    </header>
+    <main class="project-content">
+      <p class="back-home"><a href="../index.html">&larr; Back to Home</a></p>
+
+      <div class="section">
+        <h2>Part 1.1: Convolutions from Scratch</h2>
+        <p>
+          For this section, I implemented a 2D convolution function from scratch
+          using two different approaches: one with four nested loops and a more
+          optimized version with two nested loops. Both implementations include
+          zero-padding to ensure the output image retains the same dimensions as
+          the input. I then applied these functions to a grayscale selfie, using
+          a 9x9 box filter, as well as Dx and Dy finite difference operators.
+        </p>
+
+        <div class="flex-column">
+          <div class="flex-row">
+            <div>
+              <img src="images/self_image.jpeg" alt="Original Image" />
+              <p>Original Image</p>
+            </div>
+            <div>
+              <img src="images/part1-1_boxfilter.jpg" alt="9x9 Box Filter" />
+              <p>9x9 Box Filter</p>
+            </div>
+          </div>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part1-1_Dx.jpg"
+                alt="Dx Finite Difference Operator"
+              />
+              <p>Dx Finite Difference Operator</p>
+            </div>
+            <div>
+              <img
+                src="images/part1-1_Dy.jpg"
+                alt="Dy Finite Difference Operator"
+              />
+              <p>Dy Finite Difference Operator</p>
+            </div>
+          </div>
+        </div>
+
+        <h3>Code Snippets</h3>
+        <pre><code>def convolution_4loops(image: np.ndarray, kernel: np.ndarray):
+    kx = (len(kernel) - 1) // 2
+    ky = (len(kernel[0]) - 1) // 2
+    kernel_flipped = kernel[::-1, ::-1]
+
+    padded_image = np.pad(image, ((kx, kx), (ky, ky)), mode="constant")
+    output_image = np.zeros(image.shape)
+
+    for i in range(output_image.shape[0]):
+        for j in range(output_image.shape[1]):
+            org_i = i + kx
+            org_j = j + ky
+            for u in np.arange(-kx, kx + 1):
+                for v in np.arange(-ky, ky + 1):
+                    output_image[i, j] += (
+                        kernel_flipped[u + kx, v + ky] * padded_image[org_i + u, org_j + v]
+                    )
+
+    return output_image
+
+def convolution_2loops(image: np.ndarray, kernel: np.ndarray):
+    kx = (len(kernel) - 1) // 2
+    ky = (len(kernel[0]) - 1) // 2
+    kernel_flipped = kernel[::-1, ::-1]
+
+    padded_image = np.pad(image, ((kx, kx), (ky, ky)), mode="constant")
+    output_image = np.zeros(image.shape)
+
+    for i in range(output_image.shape[0]):
+        for j in range(output_image.shape[1]):
+            org_i = i + kx
+            org_j = j + ky
+            output_image[i, j] = np.sum(
+                kernel_flipped
+                * padded_image[org_i - kx : org_i + kx + 1, org_j - ky : org_j + ky + 1]
+            )
+
+    return output_image</code></pre>
+        <p>
+          Both of my custom convolution functions handle boundaries by padding
+          the input image with zeros, which keeps the output dimensions
+          consistent. As expected, the four-loop implementation is significantly
+          slower than the two-loop version due to the extra iterations. While
+          both are much slower than the highly optimized
+          <code>scipy.signal.convolve2d</code>, they produce identical results,
+          confirming the correctness of my implementation.
+        </p>
+      </div>
+
+      <div class="section">
+        <h2>Part 1.2: Finite Difference Operator</h2>
+        <p>
+          In this section, I used the finite difference operators, Dx and Dy, to
+          compute the partial derivatives of the cameraman image in the x and y
+          directions. By combining these partial derivatives, I computed the
+          gradient magnitude, which represents the strength of the edges. To
+          create a clean edge map, I binarized the gradient magnitude image
+          using selected threshold. I choose the threshold by finding the right
+          value that would result in all the main edges showing while minimizing
+          the amount of noise.
+        </p>
+
+        <div class="flex-column">
+          <div>
+            <img src="images/cameraman.png" alt="Cameraman input" />
+            <p>Original Image</p>
+          </div>
+          <div class="flex-row">
+            <div>
+              <img src="images/part1-2_Dx.jpg" alt="Cameraman Dx response" />
+              <p>Dx Finite Difference Operator</p>
+            </div>
+            <div>
+              <img src="images/part1-2_Dy.jpg" alt="Cameraman Dy response" />
+              <p>Dy Finite Difference Operator</p>
+            </div>
+          </div>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part1-2_gradient_magnitude.jpg"
+                alt="Gradient magnitude"
+              />
+              <p>Gradient Magnitude</p>
+            </div>
+            <div>
+              <img
+                src="images/part1-2_binary_gradient_magnitude.jpg"
+                alt="Binarized edge map"
+              />
+              <p>Binary Edge Gradient Magnitude</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Part 1.3: Derivative of Gaussian (DoG) Filter</h2>
+        <p>
+          To improve upon the noisy results from the finite difference operator,
+          I first smoothed the image using a Gaussian filter. This reduces noise
+          before edge detection. I then convolved the smoothed image with the Dx
+          and Dy operators to find the partial derivatives. To verify the
+          properties of convolutions, I also convolved the gaussian filters to
+          the Dx and Dy filters. From these mega filters, I applied them to the
+          image and confirmed I got the same results.
+        </p>
+
+        <div class="flex-column">
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part1-3_Dx.jpg"
+                alt="Dx Finite Difference Operator w/ Gaussian Filter"
+              />
+              <p>Dx Finite Difference Operator w/ Gaussian Filter</p>
+            </div>
+            <div>
+              <img
+                src="images/part1-3_Dy.jpg"
+                alt="Finite Difference Operator w/ Gaussian Filter"
+              />
+              <p>Dy Finite Difference Operator w/ Gaussian Filter</p>
+            </div>
+          </div>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part1-3_gradient_magnitude.jpg"
+                alt="Gradient Magnitude w/ Gaussian Filter"
+              />
+              <p>Gradient Magnitude w/ Gaussian Filter</p>
+            </div>
+            <div>
+              <img
+                src="images/part1-3_binary_gradient_magnitude.jpg"
+                alt="Binary Edge Gradient w/ Gaussian Filter"
+              />
+              <p>Binary Edge Gradient w/ Gaussian Filter</p>
+            </div>
+          </div>
+        </div>
+        <div class="flex-column">
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part1-3_dog_x.jpg"
+                alt="DoG X Filter"
+                style="width: 200px"
+              />
+              <p>DoG X Filter</p>
+            </div>
+            <div>
+              <img
+                src="images/part1-3_dog_y.jpg"
+                alt="DoG Y Filter"
+                style="width: 200px"
+              />
+              <p>DoG Y Filter</p>
+            </div>
+          </div>
+        </div>
+
+        <h3>Comparison Between With and Without Gaussian Filter</h3>
+        <p>
+          The results from the binary edge map using the gaussian filter (DoG)
+          is much cleaner than the results without the gaussian filter. The
+          filter reduces noise while still preserving the main edges in the
+          image. Much of the noise from the grassy ground and background is
+          removed. However, we do lose some of the details in the image I would
+          consider important, such as the edges on the camera itself. Overall,
+          the DoG filter provides a cleaner image if the goal is to identify the
+          main edges in the image.
+        </p>
+      </div>
+
+      <div class="section">
+        <h2>Part 2.1: Image "Sharpening"</h2>
+        <p>
+          In this section, I implemented the unsharp mask filter to sharpen
+          images. This technique works by subtracting a blurred version of an
+          image from the original, which isolates the high-frequency details.
+          From this, we add it back to the original image, scaled by a factor
+          alpha, to enhance these details. Alternatively, this can be achieved
+          by convolving the image with the laplacian of gaussian filter, which
+          is the unit impulse minus the gaussian filter.
+        </p>
+        <p>
+          After sharpening the Taj Mahal image, then blurring it, then
+          sharpening it again, I noticed that the image looks worse. This is
+          because the sharpening is not actually sharpening the image. It is
+          increasing the high frequencies which does not make up for the loss
+          information that blurring does.
+        </p>
+
+        <div class="flex-column">
+          <div class="flex-row">
+            <div>
+              <img src="images/taj.jpg" alt="Original Taj" />
+              <p>Taj Mahal</p>
+            </div>
+            <div>
+              <img src="images/part2-1_taj_blurred.jpg" alt="Blurred Taj" />
+              <p>Taj Mahal Blurred</p>
+            </div>
+            <div>
+              <img
+                src="images/part2-1_taj_highfreq.jpg"
+                alt="High Frequency Taj"
+              />
+              <p>Taj Mahal High Frequency</p>
+            </div>
+          </div>
+          <div class="flex-row">
+            <div>
+              <img src="images/part2-1_taj_a2.jpg" alt="Taj a=2" />
+              <p>Taj Mahal (alpha = 2)</p>
+            </div>
+            <div>
+              <img src="images/part2-1_taj_a4.jpg" alt="Taj a=4" />
+              <p>Taj Mahal (alpha = 4)</p>
+            </div>
+            <div>
+              <img src="images/part2-1_taj_a8.jpg" alt="Taj a=8" />
+              <p>Taj Mahal (alpha = 8)</p>
+            </div>
+          </div>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/blurry_image1.jpeg"
+                alt="Golden Gate Bridge blurry"
+              />
+              <p>Golden Gate Bridge (blurry)</p>
+            </div>
+            <div>
+              <img
+                src="images/part2-1_blurry_image1.jpg"
+                alt="Golden Gate Bridge sharpened"
+              />
+              <p>Golden Gate Bridge (sharpened)</p>
+            </div>
+          </div>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/blurry_image2.jpeg"
+                alt="Giant Golden Hands Bridge blurry"
+              />
+              <p>Giant Golden Hands Bridge (blurry)</p>
+            </div>
+            <div>
+              <img
+                src="images/part2-1_blurry_image2.jpg"
+                alt="Giant Golden Hands Bridge sharpened"
+              />
+              <p>Giant Golden Hands Bridge (sharpened)</p>
+            </div>
+          </div>
+          <div class="flex-row">
+            <div>
+              <img src="images/taj.jpg" alt="Original Taj" />
+              <p>Taj Mahal</p>
+            </div>
+            <div>
+              <img
+                src="images/part2-1_taj_sharpen_again.jpg"
+                alt="Taj sharpened again"
+              />
+              <p>Taj Mahal (sharpened, blurred, sharpened again)</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Part 2.2: Hybrid Images</h2>
+        <p>
+          For this part of the project, I created hybrid images by combining the
+          low-frequency components of one image with the high-frequency
+          components of another. This results in a composite image that appears
+          differently depending on the viewing distance.
+        </p>
+
+        <h3>Nutmeg + Derek, Full Process</h3>
+        <p>
+          I choose a cutoff frequency of 2 for Nutmeg (high frequency) and 3 for
+          Derek (low frequency). This provided a good balance to being able to
+          see one when looking close and the other when further away.
+        </p>
+        <div class="flex-column">
+          <div class="flex-row">
+            <div>
+              <img src="images/nutmeg.jpg" alt="Nutmeg" />
+              <p>Nutmeg</p>
+            </div>
+            <div>
+              <img src="images/DerekPicture.jpg" alt="Derek" />
+              <p>Derek</p>
+            </div>
+          </div>
+          <div class="flex-row">
+            <div>
+              <img src="images/part2-2_ft1.jpg" alt="FFT of Nutmeg" />
+              <p>FFT of Nutmeg</p>
+            </div>
+            <div>
+              <img src="images/part2-2_ft2.jpg" alt="FFT of Derek" />
+              <p>FFT of Derek</p>
+            </div>
+          </div>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part2-2_filtered1.jpg"
+                alt="High-pass filtered Nutmeg"
+              />
+              <p>High-Pass Filtered Nutmeg</p>
+            </div>
+            <div>
+              <img
+                src="images/part2-2_filtered2.jpg"
+                alt="Low-pass filtered Derek"
+              />
+              <p>Low-Pass Filtered Derek</p>
+            </div>
+          </div>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part2-2_ft1_filtered.jpg"
+                alt="FFT High-pass filtered Nutmeg"
+              />
+              <p>FFT High-Pass Filtered Nutmeg</p>
+            </div>
+            <div>
+              <img
+                src="images/part2-2_ft2_filtered.jpg"
+                alt="FFT Low-pass filtered Derek"
+              />
+              <p>FFT Low-Pass Filtered Derek</p>
+            </div>
+          </div>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part2-2_nutmeg_DerekPicture.jpg"
+                alt="Hybrid Image"
+              />
+              <p>Nutmeg + Derek Hybrid</p>
+            </div>
+            <div>
+              <img src="images/part2-2_ft_hybrid.jpg" alt="FFT Hybrid Image" />
+              <p>FFT Nutmeg + Derek Hybrid</p>
+            </div>
+          </div>
+        </div>
+
+        <h3>Additional Hybrid Images</h3>
+        <div class="flex-column">
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/lincoln.jpeg"
+                alt="Abraham Lincoln"
+                style="max-height: 300px"
+              />
+              <p>Abraham Lincoln</p>
+            </div>
+            <div>
+              <img src="images/washington.jpeg" alt="George Washington" />
+              <p>George Washington</p>
+            </div>
+          </div>
+          <div>
+            <img
+              src="images/part2-2_lincoln_washington.jpg"
+              alt="Lincoln and Washington Hybrid"
+            />
+            <p>Lincoln + Washington Hybrid</p>
+          </div>
+        </div>
+        <div class="flex-column">
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/oppenheimer_real.jpeg"
+                alt="Real Life Oppenheimer"
+              />
+              <p>Oppenheimer (real life)</p>
+            </div>
+            <div>
+              <img
+                src="images/oppenheimer_movie.jpeg"
+                alt="Oppenheimer Movie Poster"
+              />
+              <p>Oppenheimer (movie)</p>
+            </div>
+          </div>
+          <div>
+            <img
+              src="images/part2-2_oppenheimer_real_oppenheimer_movie.jpg"
+              alt="Oppenheimer Hybrid"
+            />
+            <p>Oppenheimer (real life) + Oppenheimer (movie) Hybrid</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>
+          Part 2.3 & 2.4: Gaussian/Laplacian Stacks & Multiresolution Blending
+        </h2>
+        <p>
+          In this section, I explored multiresolution blending using Gaussian
+          and Laplacian stacks. This technique allows for seamless blending of
+          two images by decomposing them into different frequency bands.
+          Firstly, I created the Gaussian and Laplacian stacks for each image.
+          Then, I created a mask and its Gaussian stack. From this, I combined
+          the Laplacian stacks of both images using the mask at each level and
+          reconstructed the final blended image from the combined Laplacian
+          stack.
+        </p>
+
+        <div class="flex-column">
+          <div class="flex-row">
+            <div>
+              <img src="images/apple.jpeg" alt="Apple" />
+              <p>Apple</p>
+            </div>
+            <div>
+              <img src="images/orange.jpeg" alt="Orange" />
+              <p>Orange</p>
+            </div>
+          </div>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part2-3_apple.jpg"
+                alt="Gaussian Pyramid of Apple"
+                style="max-height: 800px"
+              />
+              <p>Gaussian and Laplacian Stacks of Apple</p>
+            </div>
+            <div>
+              <img
+                src="images/part2-3_orange.jpg"
+                alt="Laplacian Pyramid of Orange"
+                style="max-height: 800px"
+              />
+              <p>Gaussian and Laplacian Stacks of Orange</p>
+            </div>
+            <div>
+              <img
+                src="images/part2-4_apple_orange_process.jpg"
+                alt="Apple and Orange Blending Process"
+                style="max-height: 900px"
+              />
+              <p>Apple and Orange Blending Process</p>
+            </div>
+          </div>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part2-4_apple_orange.jpg"
+                alt="Apple and Orange Final Result"
+              />
+              <p>Apple and Orange Final Result</p>
+            </div>
+          </div>
+        </div>
+        <div class="flex-column">
+          <div class="flex-row">
+            <div>
+              <img src="images/sather_gate_old.jpg" alt="Sather Gate Old" />
+              <p>Sather Gate (~1964)</p>
+            </div>
+            <div>
+              <img src="images/sather_gate_new.jpg" alt="Sather Gate New" />
+              <p>Sather Gate (~2002)</p>
+            </div>
+          </div>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part2-3_sather_gate_old.jpg"
+                alt="Gaussian Pyramid of Sather Gate Old"
+                style="max-height: 950px"
+              />
+              <p>Gaussian and Laplacian Stacks of Sather Gate (~1964)</p>
+            </div>
+            <div>
+              <img
+                src="images/part2-3_sather_gate_new.jpg"
+                alt="Laplacian Pyramid of Sather Gate New"
+                style="max-height: 950px"
+              />
+              <p>Gaussian and Laplacian Stacks of Sather Gate (~2002)</p>
+            </div>
+          </div>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part2-4_sather_gate_old_sather_gate_new_process.jpg"
+                alt="Sather Gate Blending Process"
+                style="max-height: 900px"
+              />
+              <p>Sather Gate Blending Process</p>
+            </div>
+            <div>
+              <img
+                src="images/part2-4_sather_gate_old_sather_gate_new.jpg"
+                alt="Sather Gate Final Result"
+              />
+              <p>Sather Gate Final Result</p>
+            </div>
+          </div>
+        </div>
+        <div class="flex-column">
+          <div class="flex-row">
+            <div>
+              <img src="images/kangaroo.jpeg" alt="Kangaroo" />
+              <p>Kangaroo</p>
+            </div>
+            <div>
+              <img src="images/godzilla.jpeg" alt="Godzilla" />
+              <p>Godzilla (with background augmentation)</p>
+            </div>
+          </div>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part2-3_kangaroo.jpg"
+                alt="Gaussian Pyramid of Kangaroo"
+                style="max-height: 1000px"
+              />
+              <p>Gaussian and Laplacian Stacks of Kangaroo</p>
+            </div>
+            <div>
+              <img
+                src="images/part2-3_godzilla.jpg"
+                alt="Laplacian Pyramid of Godzilla"
+                style="max-height: 1000px"
+              />
+              <p>Gaussian and Laplacian Stacks of Godzilla</p>
+            </div>
+            <div>
+              <img
+                src="images/part2-4_kangaroo_godzilla_process.jpg"
+                alt="Kangaroo and Godzilla Blending Process"
+                style="max-height: 1000px"
+              />
+              <p>Kangaroo and Godzilla Blending Process</p>
+            </div>
+          </div>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part2-4_kangaroo_godzilla.jpg"
+                alt="Kangaroo and Godzilla Final Result"
+              />
+              <p>Kangaroo and Godzilla Final Result</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>What I learned</h2>
+        <p>
+          The most important thing I learned in this project was about how high
+          and low frequencies make up an image and how they affect our
+          perception. By changing these frequencies, we can do many things, like
+          blurring sharpening, stacking, and blending images. We can use
+          techniques like the Gaussian and Laplacian stacks with frequency
+          editing to do many cool image manipulations.
+        </p>
+        <p>
+          Another important takeaway was choosing the right image
+          transformations to convert it back to a [0, 1] float. Some operations
+          modify the image floats such that it becomes negative, too large, or
+          have a very small range. Choosing to scale it back to [0, 1], clipping
+          it, or leaving it as it is can make a big difference in the final
+          output.
+        </p>
+      </div>
+    </main>
+    <footer>
+      <p>&copy; 2025 Alex Luu</p>
+    </footer>
+  </body>
+</html>
