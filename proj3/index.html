@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CS 180 Portfolio: Project 3</title>
+    <link rel="stylesheet" href="../style.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Alex Luu's CS 180 Project Portfolio</h1>
+      <h2>Project 3: [Auto]Stitching Photo Mosaics</h2>
+    </header>
+    <main class="project-content">
+      <p class="back-home"><a href="../index.html">&larr; Back to Home</a></p>
+
+      <div class="section">
+        <h2>Part A.1: Shoot the Pictures</h2>
+
+        <h3>Mosaics Images</h3>
+        <div class="flex-column">
+          <div class="flex-row">
+            <div>
+              <img src="images/forest_left.jpeg" alt="Forest left" />
+              <p>Forest Left</p>
+            </div>
+            <div>
+              <img src="images/forest_center.jpeg" alt="Forest center" />
+              <p>Forest Center</p>
+            </div>
+            <div>
+              <img src="images/forest_right.jpeg" alt="Forest right" />
+              <p>Forest Right</p>
+            </div>
+          </div>
+          <div class="flex-row">
+            <div>
+              <img src="images/lane_left.jpeg" alt="Street right" />
+              <p>Street Left</p>
+            </div>
+            <div>
+              <img src="images/lane_center.jpeg" alt="Street center" />
+              <p>Street Center</p>
+            </div>
+            <div>
+              <img src="images/lane_right.jpeg" alt="Street right" />
+              <p>Street Right</p>
+            </div>
+          </div>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/hallway_left.jpeg"
+                alt="Hallway left"
+                style="max-height: 400px"
+              />
+              <p>Wheeler Hall Left</p>
+            </div>
+            <div>
+              <img
+                src="images/hallway_right.jpeg"
+                alt="Hallway right"
+                style="max-height: 400px"
+              />
+              <p>Wheeler Hall Right</p>
+            </div>
+          </div>
+        </div>
+        <h3>Rectification Images</h3>
+        <div class="flex-column">
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/powerbox.jpeg"
+                alt="electrical panel"
+                style="max-height: 400px"
+              />
+              <p>Electrical Panel</p>
+            </div>
+            <div>
+              <img
+                src="images/evans.jpeg"
+                alt="Evans hall"
+                style="max-height: 550px"
+              />
+              <p>Evans Hall</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Part A.2: Recover Homographies</h2>
+        <p>
+          In this part, I wrote the <code>computeH</code> function that computes
+          the homography matrix from the 2 sets of points. I also wrote a point
+          selector function that aids in selecting points visually. After
+          selecing points, I would print and save the outputs for
+          reproducibility. The images below are the points I selected to be
+          mapped to a square output. To see the correspondences for the mosaic
+          images, please check section A.4.
+        </p>
+        <p>
+          The system of equations I used to solve for the homography matrix is
+          shown below. Note that it is only shown for a single data point. (x,
+          y) is the point on the image to be transformed, and (x', y') is the
+          corresponding point on the output image. The homography matrix H is
+          represented by the variables a, b, c, d, e, f, g, and h.
+        </p>
+        <pre>
+                                      [[a]
+                                       [b]
+                                       [c]
+[[x, y, 1,  0,  0,  0, -x*x', -y*x']   [d]   =   [[x']
+ [ 0,  0,  0, x, y, 1, -x*y', -y*y']]  [e]        [y']]
+                                       [f]
+                                       [g]
+                                       [h]]
+        </pre>
+
+        <div class="flex-column">
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part-a-2_powerbox_points.jpg"
+                alt="Electrical panel points"
+              />
+              <p>Electrical Panel Points</p>
+            </div>
+            <div>
+              <pre>
+H: 
+[[ 2.73863262e-01 -2.11616216e-02 -8.62139265e+01]
+ [-5.00062062e-02  2.16144295e-01 -2.99203946e+01]
+ [-5.53283959e-04  2.29394000e-05  1.00000000e+00]]
+              </pre>
+            </div>
+          </div>
+
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part-a-2_evans_points.jpg"
+                alt="Evans hall points"
+              />
+              <p>Evans Hall Points</p>
+            </div>
+            <div>
+              <pre>
+H: 
+[[ 5.02152033e-01 -3.83072252e-02 -1.43194347e+02]
+ [-1.33960566e-02  4.73944947e-01 -1.21724917e+02]
+ [-4.66894335e-05 -2.02028103e-04  1.00000000e+00]]
+              </pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Part A.3: Warp the Images</h2>
+        <p>
+          In this section, I implemented two interpolation methods from scratch:
+          Nearest Neighbor and Bilinear. These methods are used in conjunction
+          with warping to transform images based on a homography matrix.
+        </p>
+        <p>
+          Nearest Neighbor interpolation rounds coordinates to the nearest pixel
+          value, offering a faster but more pixelated result. Bilinear
+          interpolation uses a weighted average of four neighboring pixels,
+          providing a higher quality, smoother output at the cost of increased
+          computational time. The rectification results below demonstrate the
+          visual differences between these two approaches.
+        </p>
+        <p>
+          I initially implemented both using for loops that looped through each
+          output pixel. Both were slow, but Nearest Neighbor was significantly
+          faster than Bilinear. I then optimized both methods using NumPy's
+          vectorization to remove all loops. This resulted in an almost instant
+          output for both methods.
+        </p>
+        <p>
+          To implement these methods, I wrote a helper function that would
+          determine the full output canvas size by warping the four corners of
+          the input image. I would then scale the 0-centered output coordinates
+          with the bounds from the 4 corners to be able to map the entire image.
+          From these scaled points, I passed them through the inverse homography
+          matrix to get the corresponding input image coordinates. Finally, I
+          would apply the interpolation methods to create the output image.
+        </p>
+
+        <h3>Rectification Results</h3>
+        <div class="flex-column">
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part-a-3_powerbox_rectification_nn.png"
+                alt="Powerbox Rectification Nearest Neighbor"
+              />
+              <p>Electrical Panel Rectification (Nearest Neighbor)</p>
+            </div>
+            <div>
+              <img
+                src="images/part-a-3_powerbox_rectification_bl.png"
+                alt="Powerbox Rectification Bilinear"
+              />
+              <p>Electrical Panel Rectification (Bilinear)</p>
+            </div>
+          </div>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part-a-3_evans_rectification_nn.png"
+                alt="Evans Hall Rectification Nearest Neighbor"
+              />
+              <p>Evans Hall Rectification (Nearest Neighbor)</p>
+            </div>
+            <div>
+              <img
+                src="images/part-a-3_evans_rectification_bl.png"
+                alt="Evans Hall Rectification Bilinear"
+              />
+              <p>Evans Hall Rectification (Bilinear)</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Part A.4: Blend the Images into a Mosaic</h2>
+        <p>
+          To create the image mosaics, I used the Bilinear warp method on one
+          image at a time. If I had 3 images, I would choose a center image that
+          would remain in its original perspective. The other images would then
+          be warped to align with the center image. For cases with only 2
+          images, I would warp both to a chosen perspective. I computed the
+          required homography matrix for each warp and applied the
+          transformation. Next, I determined the final mosaic canvas size by
+          calculating scaling factors from the corners of the original image
+          after passing them through the homography transformation.
+        </p>
+        <p>
+          My initial approach placed the center (unwarped) image on the canvas
+          first, then overlaid the warped image on top. This created a
+          noticeable hard seam between the images. To address this, I
+          implemented Laplacian stack blending (using helper code from Project
+          2) to create a smooth transition. Since the warped image was
+          positioned on top, I created a mask covering the entire warped image.
+          My first attempt passed the original images through the Laplacian
+          stack function, but this introduced a black seam due to missing
+          pixels. To resolve this, I created an inverse mosaic by placing the
+          warped image first, then overlaying the center image. This became the
+          input for the mask's 0 pixels, while the original hard-edge overlay
+          was used for the 1 pixels. Although improved, a slight hard edge
+          remained due to the input image boundary. To eliminate this, I reduced
+          the mask size using blurring followed by absolute filtering, which
+          allowed the blending to avoid the hard edge entirely.
+        </p>
+
+        <h3>Forest Mosaic Results</h3>
+        <div class="flex-column">
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part-a-4-forest_CL.jpg"
+                alt="Forest Center Left"
+              />
+              <p>Forest Center and Left Base Points</p>
+            </div>
+            <div>
+              <img
+                src="images/part-a-4-forest_LC.jpg"
+                alt="Forest Left Center"
+              />
+              <p>Forest Center and Left Warp Points</p>
+            </div>
+          </div>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part-a-4-forest_CR.jpg"
+                alt="Forest Center Right"
+              />
+              <p>Forest Intermediate and Right Base Points</p>
+            </div>
+            <div>
+              <img
+                src="images/part-a-4-forest_RC.jpg"
+                alt="Forest Right Center"
+              />
+              <p>Forest Intermediate and Right Warp Points</p>
+            </div>
+          </div>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part-a-4_forest_mosaic.png"
+                alt="Forest Mosaic"
+              />
+              <p>Forest Mosaic</p>
+            </div>
+          </div>
+        </div>
+
+        <h3>Street Mosaic Results</h3>
+        <div class="flex-column">
+          <div class="flex-row">
+            <div>
+              <img src="images/part-a-4-lane_CL.jpg" alt="Street Center Left" />
+              <p>Street Center and Left Base Points</p>
+            </div>
+            <div>
+              <img src="images/part-a-4-lane_LC.jpg" alt="Street Left Center" />
+              <p>Street Center and Left Warp Points</p>
+            </div>
+          </div>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part-a-4-lane_CR.jpg"
+                alt="Street Center Right"
+              />
+              <p>Street Intermediate and Right Base Points</p>
+            </div>
+            <div>
+              <img
+                src="images/part-a-4-lane_RC.jpg"
+                alt="Street Right Center"
+              />
+              <p>Street Intermediate and Right Warp Points</p>
+            </div>
+          </div>
+          <div class="flex-row">
+            <div>
+              <img src="images/part-a-4_lane_mosaic.png" alt="Street Mosaic" />
+              <p>Street Mosaic</p>
+            </div>
+          </div>
+        </div>
+
+        <h3>Wheeler Hallway Mosaic Results</h3>
+        <div class="flex-column">
+          <div class="flex-row"></div>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part-a-4-hallway_LC.jpg"
+                alt="Hallway Left Center"
+              />
+              <p>Hallway Left Warp Points To Imaginary Image</p>
+            </div>
+            <div>
+              <img
+                src="images/part-a-4-hallway_CR.jpg"
+                alt="Hallway Center Right"
+              />
+              <p>Hallway Intermediate and Right Base Points</p>
+            </div>
+            <div>
+              <img
+                src="images/part-a-4-hallway_RC.jpg"
+                alt="Hallway Right Center"
+              />
+              <p>Hallway Intermediate and Right Warp Points</p>
+            </div>
+          </div>
+          <div>
+            <img
+              src="images/part-a-4_hallway_mosaic.png"
+              alt="Hallway Mosaic"
+              style="max-height: 650px"
+            />
+            <p>Wheeler Hallway Mosaic</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="section"></div>
+    </main>
+    <footer>
+      <p>&copy; 2025 Alex Luu</p>
+    </footer>
+  </body>
+</html>
