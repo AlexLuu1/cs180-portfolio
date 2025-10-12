@@ -375,7 +375,262 @@ H:
         </div>
       </div>
 
-      <div class="section"></div>
+      <div style="margin: 80px"></div>
+      <hr />
+      <div style="margin: 30px"></div>
+
+      <div class="section">
+        <h2>Part B.1: Harris Corner Detection</h2>
+        <p>
+          In this part, I implemented the Harris Interest Point Detector with
+          ANMS to identify corner points in images. For the Harris corner
+          detector, I used the starter code and modified it with a higher raw
+          threshold and larger local maximum window size to reduce the number of
+          points.
+        </p>
+        <p>
+          To implement Adaptive Non-Maximal Suppression (ANMS), I computed a
+          suppression radius for each corner point. This formula is provided in
+          the paper "Multi-Image Matching using Multi-Scale Oriented Patches".
+          The suppression radius is defined as the minimum distance to another
+          corner that is stronger scaled by a factor of 0.9. By selecting
+          corners with the largest suppression radii, we get a well-distributed
+          set of feature points across the image. From this, I took the top 500
+          corners.
+        </p>
+
+        <h3>Harris Corners on Street</h3>
+        <div class="flex-column">
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part-b-1_lane_left_harris.jpg"
+                alt="Lane Left Harris Corners"
+              />
+              <p>Street Left Corners (Before ANMS)</p>
+            </div>
+            <div>
+              <img
+                src="images/part-b-1_lane_left_anms_harris.jpg"
+                alt="Lane Left ANMS Harris Corners"
+              />
+              <p>Street Left Corners (After ANMS)</p>
+            </div>
+          </div>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part-b-1_lane_center_harris.jpg"
+                alt="Lane Center Harris Corners"
+              />
+              <p>Street Center Corners (Before ANMS)</p>
+            </div>
+            <div>
+              <img
+                src="images/part-b-1_lane_center_anms_harris.jpg"
+                alt="Lane Center ANMS Harris Corners"
+              />
+              <p>Street Center Corners (After ANMS)</p>
+            </div>
+          </div>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part-b-1_lane_right_harris.jpg"
+                alt="Lane Right Harris Corners"
+              />
+              <p>Street Right Corners (Before ANMS)</p>
+            </div>
+            <div>
+              <img
+                src="images/part-b-1_lane_right_anms_harris.jpg"
+                alt="Lane Right ANMS Harris Corners"
+              />
+              <p>Street Right Corners (After ANMS)</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Part B.2: Feature Descriptor Extraction</h2>
+        <p>
+          In this section, I implemented feature descriptor extraction for each
+          detected corner point. I extracted a 40x40 pixel window around each
+          corner. I then downsampled this to an 8x8 patch and normalized it so
+          that it had zero mean and unit variance to make it more robust.
+        </p>
+
+        <div class="flex-column">
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part-b-2_lane_patches.jpg"
+                alt="Feature Descriptor Patches"
+              />
+              <p>
+                Some of the 8x8 Feature Descriptors from Street Center Image
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Part B.3: Feature Matching</h2>
+        <p>
+          In this section, I implemented feature matching between pairs of
+          images. For each feature descriptor in the first image, I computed the
+          sum of squared differences (SSD) with all descriptors in the second
+          image to find potential matches.
+        </p>
+        <p>
+          To ensure robust matching, I used Lowe's ratio test: for each feature,
+          I compared the distance to the nearest neighbor with the distance to
+          the second-nearest neighbor. A match is only accepted if the ratio of
+          these distances is below a 0.3. This helps filter out ambiguous
+          matches where multiple features look similar.
+        </p>
+
+        <div class="flex-column">
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part-b-3_lane_matches.jpg"
+                alt="Feature Matches Between Lane Images"
+              />
+              <p>
+                Some of the Feature Matches Between Street Center and Left
+                Images
+              </p>
+            </div>
+          </div>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part-b-3_lane_matches_image.jpg"
+                alt="Feature Matches Visualization"
+              />
+              <p>
+                Some of the Feature Matches on Original Images (Street Left and
+                Center)
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Part B.4: RANSAC for Robust Homography</h2>
+        <p>
+          In this final section, I implemented 4-point RANSAC to compute a
+          homography estimate from the noisy feature matches. RANSAC (RANdom
+          SAmple Consensus) is an iterative algorithm that identifies inliers in
+          the presence of outliers.
+        </p>
+        <p>
+          The algorithm I implemented works as follows: Randomly select 4
+          feature matches and compute a homography from these points. Then, test
+          all other matches against this homography to count inliers within a
+          threshold of 40 pixels. To measure difference, I used L2 distance
+          between the actual point and the projected point. I repeated this
+          process for 10000 iterations (by default). Finally, I recomputed the
+          homography using all inliers to get a robust estimate.
+        </p>
+        <p>
+          Using the robust homography from RANSAC, I then adapted the code from
+          Part A to create automatic image mosaics. Below, I show comparisons
+          between manually stitched results (from Part A) and automatically
+          stitched results (using the automatic feature detection and matching
+          pipeline from Part B).
+        </p>
+
+        <h3>Forest Mosaic</h3>
+        <div class="flex-column">
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part-a-4_forest_mosaic.png"
+                alt="Forest Mosaic Manual"
+              />
+              <p>Forest Mosaic (Manual)</p>
+            </div>
+          </div>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part-b-4_forest_mosaic.png"
+                alt="Forest Mosaic Automatic"
+              />
+              <p>Forest Mosaic (Automatic)</p>
+            </div>
+          </div>
+        </div>
+
+        <h3>Street Mosaic</h3>
+        <div class="flex-column">
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part-a-4_lane_mosaic.png"
+                alt="Street Mosaic Manual"
+              />
+              <p>Street Mosaic (Manual)</p>
+            </div>
+          </div>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part-b-4_lane_mosaic.png"
+                alt="Street Mosaic Automatic"
+              />
+              <p>Street Mosaic (Automatic)</p>
+            </div>
+          </div>
+        </div>
+
+        <h3>Wheeler Hallway Mosaic</h3>
+        <div class="flex-column">
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part-a-4_hallway_mosaic.png"
+                alt="Hallway Mosaic Manual"
+                style="max-height: 650px"
+              />
+              <p>Wheeler Hallway Mosaic (Manual)</p>
+            </div>
+          </div>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part-b-4_hallway_mosaic.png"
+                alt="Hallway Mosaic Automatic"
+                style="max-height: 650px"
+              />
+              <p>Wheeler Hallway Mosaic (Automatic)</p>
+            </div>
+          </div>
+        </div>
+
+        <h3>Manual vs Automatic Point Selection</h3>
+        <p>
+          As seen above, it seem like the manual method produces better results
+          on average. For the forest and street mosaics, both the manual and
+          automatic performed well. However, for the hallway mosaic, the
+          automatic method struggled with the bar light on the ceiling. This is
+          probably because the ceiling area is mostly symmetrical which means
+          there were too many similar points. For example, the bar of light
+          closest to the camera is not fully shown on either original pictures.
+          However, the part of the light that holds it to the ceiling and the 2
+          long edges are very similar in both images (since it is symmetrical).
+          This results in a significant incorrect match since which hurts how
+          the homography matrix is calculated (since least squares is not robust
+          to outliers). In contrast, the manual method allows for more control
+          over which points are selected, which can help avoid these types of
+          issues.
+        </p>
+      </div>
     </main>
     <footer>
       <p>&copy; 2025 Alex Luu</p>
