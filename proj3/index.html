@@ -615,20 +615,16 @@ H:
 
         <h3>Manual vs Automatic Point Selection</h3>
         <p>
-          As seen above, it seem like the manual method produces better results
-          on average. For the forest and street mosaics, both the manual and
-          automatic performed well. However, for the hallway mosaic, the
-          automatic method struggled with the bar light on the ceiling. This is
-          probably because the ceiling area is mostly symmetrical which means
-          there were too many similar points. For example, the bar of light
-          closest to the camera is not fully shown on either original pictures.
-          However, the part of the light that holds it to the ceiling and the 2
-          long edges are very similar in both images (since it is symmetrical).
-          This results in a significant incorrect match since which hurts how
-          the homography matrix is calculated (since least squares is not robust
-          to outliers). In contrast, the manual method allows for more control
-          over which points are selected, which can help avoid these types of
-          issues.
+          As seen above, it seem like the manual method produces slightly better
+          results on average. With the automatic method, I had to tune some of
+          the parameters for the various methods used. For example, for the
+          hallway mosaic, the automatic method struggled with the bar light on
+          the ceiling. This is probably because the ceiling area is mostly
+          symmetrical which means there were too many similar points. To fix
+          this, I had to tune the parameters so that RANSAC would have more
+          testing points. This would be slower, but it allowed RANSAC to make up
+          for the bad point selection in the previous methods when there were
+          many similar patterns.
         </p>
       </div>
     </main>
