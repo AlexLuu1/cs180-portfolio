@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CS 180 Portfolio: Project 4</title>
+    <link rel="stylesheet" href="../style.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Alex Luu's CS 180 Project Portfolio</h1>
+      <h2>Project 4: Neural Radiance Field</h2>
+    </header>
+    <main class="project-content">
+      <p class="back-home"><a href="../index.html">&larr; Back to Home</a></p>
+
+      <div class="section">
+        <h2>Part 0.1: Calibrating Your Camera</h2>
+        <p>
+          I captured 43 images of ArUco calibration tags from my phone camera at
+          various angles and distances, keeping the zoom level consistent. For
+          each image, I detected the ArUco tags using OpenCV's ArUco detector,
+          extracted the corner coordinates, and collected all detected corners
+          with their corresponding 3D world coordinates. Using
+          <code>cv2.calibrateCamera()</code>, I computed the camera intrinsics
+          and distortion coefficients. If no tags were detected in an image, I
+          excluded that image from the calibration dataset.
+        </p>
+        <p>
+          For efficiency, I downsampled the images so it would train faster.
+          This involves downsampling the calibration images in this section
+          before doing any calculations. To be consistent, I also downsampled
+          the images I took of my custom object.
+        </p>
+
+        <div class="flex-column">
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part0/example_calibration.jpeg"
+                alt="Example Calibration Image"
+                style="max-height: 400px"
+              />
+              <p>Example calibration image showing ArUco tags</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Part 0.2: Capturing a 3D Object Scan</h2>
+        <p>
+          I captured 47 images of a camping lamp with a single ArUco tag placed
+          next to it on a tabletop, using the same camera and zoom level as the
+          calibration. The images were taken from different angles around the
+          object, ensuring the tag was visible in each shot.
+        </p>
+
+        <div class="flex-column">
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part0/example_object.jpeg"
+                alt="Example Object Image"
+                style="max-height: 400px"
+              />
+              <p>Example camping lamp image with ArUco tag</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Part 0.3: Estimating Camera Pose</h2>
+        <p>
+          Using the camera intrinsics and distortion coefficients from Part 0.1,
+          I estimated the camera pose (position and orientation) for each image
+          of the object scan. This is the classic Perspective-n-Point (PnP)
+          problem: given a set of 3D points in world coordinates and their
+          corresponding 2D projections in an image, find the camera's extrinsic
+          parameters (rotation and translation).
+        </p>
+        <p>
+          For each image, I detected the single ArUco tag and used
+          <code>cv2.solvePnP()</code> to estimate the camera pose. The function
+          requires the 3D coordinates of the ArUco tag corners in world space,
+          the detected 2D pixel coordinates of the tag corners in the image, and
+          the camera intrinsic matrix and distortion coefficients.
+        </p>
+        <p>
+          OpenCV's <code>solvePnP()</code> returns the world-to-camera
+          transformation. I inverted this to get the camera-to-world (c2w)
+          matrix for visualization and later use in NeRF training.
+        </p>
+
+        <h3>Camera Frustum Visualization</h3>
+        <p>
+          I visualized the camera poses using Viser, which displays camera
+          frustums in 3D space showing both their positions and the captured
+          images. Below are two screenshots of the visualization.
+        </p>
+
+        <div class="flex-column">
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part0/visualization1.jpeg"
+                alt="Camera Frustum Visualization 1"
+                style="max-height: 500px"
+              />
+              <p>Viser visualization (view 1)</p>
+            </div>
+            <div>
+              <img
+                src="images/part0/visualization2.jpeg"
+                alt="Camera Frustum Visualization 2"
+                style="max-height: 500px"
+              />
+              <p>Viser visualization (view 2)</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Part 0.4: Undistorting Images and Creating a Dataset</h2>
+        <p>
+          With the camera intrinsics, distortion coefficients, and pose
+          estimates, the final step is to undistort the images and package
+          everything into a dataset for NeRF training.
+        </p>
+        <p>
+          I used <code>cv2.undistort()</code> to remove lens distortion from the
+          images. After undistorting all images, I split them into training,
+          validation, and test sets (90% train, 10% validation).
+        </p>
+      </div>
+
+      <div style="margin: 80px"></div>
+      <hr />
+      <div style="margin: 30px"></div>
+
+      <div class="section">
+        <h2>Part 1: Fit a Neural Field to a 2D Image</h2>
+        <p>
+          In this section, I implemented a Neural Field that represents a 2D
+          image. The network takes in 2D pixel coordinates (x, y) and outputs
+          the 3D RGB color at that position.
+        </p>
+
+        <h3>Network Architecture</h3>
+        <p>
+          I implemented a Multilayer Perceptron (MLP) network with Sinusoidal
+          Positional Encoding (PE). The MLP consists of a stack of fully
+          connected layers with ReLU activations, followed by a sigmoid
+          activation at the output to constrain RGB values to [0, 1]. The
+          network structure is:
+        </p>
+        <ul>
+          <li>
+            <strong>Input:</strong> 2D pixel coordinates (x, y) normalized to
+            [0, 1]
+          </li>
+          <li>
+            <strong>Positional Encoding:</strong> Expands the 2-dim coordinates
+            to a higher dimensional space using sinusoidal functions
+          </li>
+          <li>
+            <strong>MLP Layers:</strong> Linear(PE_dim, width) → ReLU →
+            Linear(width, width) → ReLU → Linear(width, width) → ReLU →
+            Linear(width, 3) → Sigmoid
+          </li>
+          <li>
+            <strong>Output:</strong> 3-dim RGB pixel colors in range [0, 1]
+          </li>
+        </ul>
+        <p>
+          The Positional Encoding applies sinusoidal functions to expand the
+          dimensionality: PE(x) = [x, sin(2^0πx), cos(2^0πx), sin(2^1x),
+          cos(2^1πx), ..., sin(2^(L-1)πx), cos(2^(L-1)πx)], where L is the
+          maximum frequency level. This maps a 2D coordinate to a (4L +
+          2)-dimensional vector.
+        </p>
+
+        <h3>Training Setup</h3>
+        <p>
+          I implemented a dataloader that randomly samples N pixels per
+          iteration for training. The model is trained using Mean Squared Error
+          (MSE) loss with the Adam optimizer (learning rate 1e-2) for 2000
+          iterations with a batch size of 10k pixels. I used PSNR (Peak
+          Signal-to-Noise Ratio) as the evaluation metric: PSNR = 10 × log₁₀(1 /
+          MSE).
+        </p>
+
+        <h3>Hyperparameter Tuning</h3>
+        <p>
+          I experimented with different values of L (positional encoding
+          frequency) and width (number of channels in hidden layers) to see
+          their effect on reconstruction quality. Below is a 2×2 grid comparing
+          results with L ∈ {2, 10} and width ∈ {32, 256} on the staff image:
+        </p>
+
+        <div class="flex-column">
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part1/staff_image_L2_w32.jpg"
+                alt="Staff Image L=2, w=32"
+              />
+              <p>L=2, width=32</p>
+            </div>
+            <div>
+              <img
+                src="images/part1/staff_image_L2_w256.jpg"
+                alt="Staff Image L=2, w=256"
+              />
+              <p>L=2, width=256</p>
+            </div>
+          </div>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part1/staff_image_L10_w32.jpg"
+                alt="Staff Image L=10, w=32"
+              />
+              <p>L=10, width=32</p>
+            </div>
+            <div>
+              <img
+                src="images/part1/staff_image_L10_w256.jpg"
+                alt="Staff Image L=10, w=256"
+              />
+              <p>L=10, width=256</p>
+            </div>
+          </div>
+        </div>
+
+        <p>
+          From these results, higher L values capture more high-frequency
+          details, while wider networks have more capacity. The best
+          configuration I found was L=12 and width=384, which I used for the
+          final results below.
+        </p>
+
+        <h3>Training Progression</h3>
+        <p>
+          Below are snapshots of the network's reconstruction at different
+          training iterations, showing how the model progressively learns to
+          represent the image details. The images show results at iterations
+          100, 250, 500, and 1500 for both the staff image and the Palace of
+          Fine Arts image.
+        </p>
+
+        <h4>Staff Image Training Progression (L=12, width=384)</h4>
+        <div class="flex-column">
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part1/staff_image_L12_w384_iter100.jpg"
+                alt="Staff Image iter 100"
+              />
+              <p>Iteration 100</p>
+            </div>
+            <div>
+              <img
+                src="images/part1/staff_image_L12_w384_iter250.jpg"
+                alt="Staff Image iter 250"
+              />
+              <p>Iteration 250</p>
+            </div>
+          </div>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part1/staff_image_L12_w384_iter500.jpg"
+                alt="Staff Image iter 500"
+              />
+              <p>Iteration 500</p>
+            </div>
+            <div>
+              <img
+                src="images/part1/staff_image_L12_w384_iter1500.jpg"
+                alt="Staff Image iter 1500"
+              />
+              <p>Iteration 1500</p>
+            </div>
+          </div>
+        </div>
+
+        <h4>Palace of Fine Arts Training Progression (L=12, width=384)</h4>
+        <div class="flex-column">
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part1/pofa_image_L12_w384_iter100.jpg"
+                alt="Palace of Fine Arts iter 100"
+              />
+              <p>Iteration 100</p>
+            </div>
+            <div>
+              <img
+                src="images/part1/pofa_image_L12_w384_iter250.jpg"
+                alt="Palace of Fine Arts iter 250"
+              />
+              <p>Iteration 250</p>
+            </div>
+          </div>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part1/pofa_image_L12_w384_iter500.jpg"
+                alt="Palace of Fine Arts iter 500"
+              />
+              <p>Iteration 500</p>
+            </div>
+            <div>
+              <img
+                src="images/part1/pofa_image_L12_w384_iter1500.jpg"
+                alt="Palace of Fine Arts iter 1500"
+              />
+              <p>Iteration 1500</p>
+            </div>
+          </div>
+        </div>
+
+        <h3>PSNR Curves</h3>
+        <p>
+          The graphs below show the PSNR (Peak Signal-to-Noise Ratio) during
+          training. Higher PSNR indicates better reconstruction quality.
+        </p>
+
+        <div class="flex-column">
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part1/staff_image_L12_w384_psnr.jpg"
+                alt="Staff Image PSNR"
+              />
+              <p>Staff Image PSNR Curve</p>
+            </div>
+            <div>
+              <img
+                src="images/part1/pofa_image_L12_w384_psnr.jpg"
+                alt="Palace of Fine Arts PSNR"
+              />
+              <p>Palace of Fine Arts PSNR Curve</p>
+            </div>
+          </div>
+        </div>
+
+        <h3>Final Results</h3>
+        <p>
+          Below are the original images and final reconstructed images after
+          2000 iterations with L=12 and width=384:
+        </p>
+
+        <div class="flex-column">
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part1/staff_image.jpg"
+                alt="Staff Image Original"
+              />
+              <p>Staff Image (Original)</p>
+            </div>
+            <div>
+              <img
+                src="images/part1/palace_of_fine_arts.jpeg"
+                alt="Palace of Fine Arts Original"
+              />
+              <p>Palace of Fine Arts (Original)</p>
+            </div>
+          </div>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part1/staff_image_L12_w384.jpg"
+                alt="Staff Image Final"
+              />
+              <p>Staff Image (Final Reconstruction)</p>
+            </div>
+            <div>
+              <img
+                src="images/part1/pofa_image_L12_w384.jpg"
+                alt="Palace of Fine Arts Final"
+              />
+              <p>Palace of Fine Arts (Final Reconstruction)</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin: 80px"></div>
+      <hr />
+      <div style="margin: 30px"></div>
+
+      <div class="section">
+        <h2>Part 2.1: Create Rays from Cameras</h2>
+        <p>zzzzz</p>
+      </div>
+
+      <div class="section">
+        <h2>Part 2.2: Sampling</h2>
+        <p>zzzzz</p>
+      </div>
+
+      <div class="section">
+        <h2>Part 2.3: Putting the Dataloading All Together</h2>
+        <p>zzzzz</p>
+      </div>
+
+      <div class="section">
+        <h2>Part 2.4: Neural Radiance Field</h2>
+        <p>zzzzz</p>
+      </div>
+
+      <div class="section">
+        <h2>Part 2.5: Volume Rendering</h2>
+        <p>zzzzz</p>
+      </div>
+
+      <div class="section">
+        <h2>Part 2.6: Training with your own data</h2>
+        <p>zzzzz</p>
+      </div>
+    </main>
+    <footer>
+      <p>&copy; 2025 Alex Luu</p>
+    </footer>
+  </body>
+</html>
