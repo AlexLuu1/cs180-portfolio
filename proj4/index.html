@@ -351,7 +351,8 @@
         <h3>Final Results</h3>
         <p>
           Below are the original images and final reconstructed images after
-          2000 iterations with L=12 and width=384:
+          2000 iterations with L=12, width=384, and same architecture as the
+          provided network:
         </p>
 
         <div class="flex-column">
@@ -396,32 +397,609 @@
 
       <div class="section">
         <h2>Part 2.1: Create Rays from Cameras</h2>
-        <p>zzzzz</p>
+        <p>
+          To render a 3D scene from multiple camera viewpoints, I need to
+          convert pixel coordinates into 3D rays in world space. This involves
+          three coordinate transformations. I choose to implement this using
+          batched coordinates and c2w matrices for efficiency.
+        </p>
+
+        <h3>Camera to World Coordinate Conversion</h3>
+        <p>
+          The transformation between world space and camera space is defined by
+          the camera-to-world (c2w) transformation matrix, which consists of a
+          rotation matrix R and translation vector t. I implemented the function
+          <code>x_w = transform(c2w, x_c)</code> to transform points from camera
+          coordinates to world coordinates. Because of the batched c2w and
+          points, I used np.einsum for this to correcly handle the dimensions
+        </p>
+
+        <h3>Pixel to Camera Coordinate Conversion</h3>
+        <p>
+          I implemented <code>x_c = pixel_to_camera(K, uv, s)</code> to convert
+          the pixel coordinates to camera coordinates using the inverse of the
+          intrinsic matrix K at a given depth s. I used simple numpy operations
+          for this part to inverse the matrix and perform the matrix
+          multiplication.
+        </p>
+
+        <h3>Pixel to Ray Conversion</h3>
+        <p>
+          A ray is defined by an origin r_o and direction r_d. For a pinhole
+          camera, the ray origin is simply the camera position in world space
+          (the translation component of the c2w matrix). To find the ray
+          direction, I choose a point along the ray at depth s = 1 in camera
+          space, convert it to world coordinates, and compute the normalized
+          direction vector: r_d = (Xw - r_o) / ||Xw - r_0||_2.
+        </p>
       </div>
 
       <div class="section">
         <h2>Part 2.2: Sampling</h2>
-        <p>zzzzz</p>
+        <p>
+          With the ability to convert pixels to rays, I now need to sample rays
+          from the training images and sample 3D points along those rays.
+        </p>
+
+        <h3>Sampling Rays from Images</h3>
+        <p>
+          For training, I need to sample N rays at every iteration. I
+          implemented the global sampling where I flattened all the pixels from
+          all training images and sampled N rays globally. To flatten the
+          pixels, I use np.meshgrid and duplicated the c2w matrices to ensure
+          the same dimensions as the pixels. I then used pixel_to_ray to convert
+          the sampled pixels to rays.
+        </p>
+
+        <h3>Sampling Points Along Rays</h3>
+        <p>
+          After obtaining rays, I need to discretize each ray into sample points
+          in 3D space. For a ray defined by r(t) = r_o + t·r_d, I sample points
+          at regular intervals between near and far bounds. I added a parameter
+          to optionally perturb the sample locations with random noise to
+          improve training stability. I choose to use 64 samples per ray.
+        </p>
       </div>
 
       <div class="section">
         <h2>Part 2.3: Putting the Dataloading All Together</h2>
-        <p>zzzzz</p>
+        <p>
+          I combined all the components from Parts 2.1 and 2.2 into a complete
+          dataloader for NeRF training. The dataloader randomly samples rays
+          from the training set of images and c2w matrices. I also implemented a
+          function that takes in a batch from the dataloader and returns the
+          sampled 3D points along each ray, along with their corresponding RGB
+          colors from the images using the sampling function in part 2.2. This
+          would be the data fed into the NeRF network during training.
+        </p>
+
+        <h3>Ray and Sample Visualization</h3>
+        <p>
+          Below are visualizations showing the rays and sample points in 3D
+          space at a single training step. The visualization plots 100 rays with
+          their sample points.
+        </p>
+
+        <div class="flex-column">
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part2/lego_rays_visual1.jpeg"
+                alt="Ray Visualization 1"
+                style="max-height: 500px"
+              />
+              <p>Ray and sample visualization (view 1)</p>
+            </div>
+            <div>
+              <img
+                src="images/part2/lego_rays_visual2.jpeg"
+                alt="Ray Visualization 2"
+                style="max-height: 500px"
+              />
+              <p>Ray and sample visualization (view 2)</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="section">
         <h2>Part 2.4: Neural Radiance Field</h2>
-        <p>zzzzz</p>
+        <p>
+          The Neural Radiance Field (NeRF) network extends the 2D neural field
+          from Part 1 to represent a 3D scene. The key difference is that the
+          network now takes 3D coordinates and view directions (r_d) as input
+          and outputs both color and density.
+        </p>
+
+        <h3>Network Architecture</h3>
+        <p>The NeRF network has three main changes from Part 1:</p>
+        <ul>
+          <li>
+            <strong>Input:</strong> 3D world coordinates (x, y, z) along with
+            the 3D ray direction (d_x, d_y, d_z). Both are encoded using
+            positional encoding with different frequency levels.
+          </li>
+          <li>
+            <strong>Output:</strong> RGB color (3 values) and density σ (1
+            value). The density must be positive, so it is constrained using
+            ReLU to ensure non-negative values. The RGB is constrined using
+            softmax.
+          </li>
+          <li>
+            <strong>Modified Structure:</strong> The network is deeper to handle
+            the complexity. The 3D coordinates go through many fully connected
+            layers and has a concatenation with the original input (after PE).
+            It then splits into two branches: one for predicting density σ and
+            another for predicting color c. The color branch takes the ray
+            direction encoding through concatenation.
+          </li>
+        </ul>
+        <p>
+          For both the lego and custom renders below, I used the same exact
+          architecture as the provided network except for the values of the
+          positional encoding and width. I used PyTorch to implement this
+          network.
+        </p>
       </div>
 
       <div class="section">
         <h2>Part 2.5: Volume Rendering</h2>
-        <p>zzzzz</p>
+        <p>
+          In this section, I implemented the volume rendering function and
+          trained the network on the Lego dataset.
+        </p>
+
+        <h3>Volume Rendering Function</h3>
+        <p>
+          The volume rendering equation combines the density and color
+          predictions from the NeRF network along each ray to produce the final
+          pixel color. I implemented the discrete volume rendering function:
+          Ĉ(r) = Σᵢ Tᵢ(1 - exp(-σᵢδᵢ))cᵢ, where Tᵢ = exp(-Σⱼ₌₁ⁱ⁻¹ σⱼδⱼ). Since
+          this function is part of the backpropagation, I used PyTorch tensor
+          operations (e.g. torch.cumsum) and vectorization for speed.
+        </p>
+
+        <h3>Training Steps</h3>
+        <p>
+          For the training loop, I used the dataloader from Part 2.3 to sample N
+          rays and their corresponding RGB colors. I then sampled 3D points
+          along each ray and passed them through the NeRF network to get color
+          and density predictions. From this, I reshaped the outputs back into
+          groups of rays (shape [N, 64, 3 or 1]) and applied the volume
+          rendering function to get the final pixel colors. I computed the MSE
+          loss between the rendered colors and ground truth colors, and used the
+          Adam optimizer to update the network weights.
+        </p>
+        <p>
+          At regular intervals, I evaluated the model on the validation set by
+          rendering full images using all rays from the validation cameras and
+          computed the PSNR. I created validation and test helper functions to
+          do this.
+        </p>
+
+        <h3>Training Progression</h3>
+        <p>
+          I trained the NeRF on the Lego dataset for 1200 iterations with a
+          learning rate of 5e-4, Adam optimizer, and a batch size of 10k rays
+          (so 64k inputs per iteration). I used a frequency of L=12 for the
+          coordinates and L=6 for the direction vector. The width of the linear
+          layers were 288. Below are validation images at different training
+          stages.
+        </p>
+
+        <div class="flex-column">
+          <h4 style="margin-bottom: 0">Iteration 50</h4>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part2/lego_val_iter50_1.jpg"
+                alt="Lego Val Iter 50 Image 1"
+                style="height: 300px"
+              />
+            </div>
+            <div>
+              <img
+                src="images/part2/lego_val_iter50_2.jpg"
+                alt="Lego Val Iter 50 Image 2"
+                style="height: 300px"
+              />
+            </div>
+            <div>
+              <img
+                src="images/part2/lego_val_iter50_3.jpg"
+                alt="Lego Val Iter 50 Image 3"
+                style="height: 300px"
+              />
+            </div>
+          </div>
+
+          <h4 style="margin-bottom: 0">Iteration 100</h4>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part2/lego_val_iter100_1.jpg"
+                alt="Lego Val Iter 100 Image 1"
+                style="height: 300px"
+              />
+            </div>
+            <div>
+              <img
+                src="images/part2/lego_val_iter100_2.jpg"
+                alt="Lego Val Iter 100 Image 2"
+                style="height: 300px"
+              />
+            </div>
+            <div>
+              <img
+                src="images/part2/lego_val_iter100_3.jpg"
+                alt="Lego Val Iter 100 Image 3"
+                style="height: 300px"
+              />
+            </div>
+          </div>
+
+          <h4 style="margin-bottom: 0">Iteration 250</h4>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part2/lego_val_iter250_1.jpg"
+                alt="Lego Val Iter 250 Image 1"
+                style="height: 300px"
+              />
+            </div>
+            <div>
+              <img
+                src="images/part2/lego_val_iter250_2.jpg"
+                alt="Lego Val Iter 250 Image 2"
+                style="height: 300px"
+              />
+            </div>
+            <div>
+              <img
+                src="images/part2/lego_val_iter250_3.jpg"
+                alt="Lego Val Iter 250 Image 3"
+                style="height: 300px"
+              />
+            </div>
+          </div>
+
+          <h4 style="margin-bottom: 0">Iteration 500</h4>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part2/lego_val_iter500_1.jpg"
+                alt="Lego Val Iter 500 Image 1"
+                style="height: 300px"
+              />
+            </div>
+            <div>
+              <img
+                src="images/part2/lego_val_iter500_2.jpg"
+                alt="Lego Val Iter 500 Image 2"
+                style="height: 300px"
+              />
+            </div>
+            <div>
+              <img
+                src="images/part2/lego_val_iter500_3.jpg"
+                alt="Lego Val Iter 500 Image 3"
+                style="height: 300px"
+              />
+            </div>
+          </div>
+
+          <h4 style="margin-bottom: 0">Iteration 800</h4>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part2/lego_val_iter800_1.jpg"
+                alt="Lego Val Iter 800 Image 1"
+                style="height: 300px"
+              />
+            </div>
+            <div>
+              <img
+                src="images/part2/lego_val_iter800_2.jpg"
+                alt="Lego Val Iter 800 Image 2"
+                style="height: 300px"
+              />
+            </div>
+            <div>
+              <img
+                src="images/part2/lego_val_iter800_3.jpg"
+                alt="Lego Val Iter 800 Image 3"
+                style="height: 300px"
+              />
+            </div>
+          </div>
+
+          <h4 style="margin-bottom: 0">Iteration 1200</h4>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part2/lego_val_iter1200_1.jpg"
+                alt="Lego Val Iter 1200 Image 1"
+                style="height: 300px"
+              />
+            </div>
+            <div>
+              <img
+                src="images/part2/lego_val_iter1200_2.jpg"
+                alt="Lego Val Iter 1200 Image 2"
+                style="height: 300px"
+              />
+            </div>
+            <div>
+              <img
+                src="images/part2/lego_val_iter1200_3.jpg"
+                alt="Lego Val Iter 1200 Image 3"
+                style="height: 300px"
+              />
+            </div>
+          </div>
+        </div>
+
+        <h3>Metrics</h3>
+        <p>
+          Below are the PSNR for training and validation. The final training
+          PSNR is 23.14. The final validation PSNR is 24.04.
+        </p>
+        <div class="flex-column">
+          <div class="flex-row">
+            <div>
+              <img src="images/part2/lego_psnr.jpg" alt="Lego PSNR Curve" />
+            </div>
+            <div>
+              <img src="images/part2/lego_psnr_val.jpg" alt="Lego PSNR Val Curve" />
+            </div>
+          </div>
+        </div>
+
+        <h3>Final Novel View Rendering</h3>
+        <p>
+          After training, I rendered a spherical view around the Lego bulldozer
+          using test camera poses.
+        </p>
+
+        <div class="flex-column">
+          <div class="flex-row">
+            <div style="text-align: center; width: 100%">
+              <img
+                src="images/part2/lego_render.gif"
+                alt="Lego Novel View Rendering"
+                style="height: 700px"
+              />
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="section">
         <h2>Part 2.6: Training with your own data</h2>
-        <p>zzzzz</p>
+        <p>
+          Using the camping lamp dataset I captured and processed in Part 0, I
+          trained a NeRF model on my own data.
+        </p>
+
+        <h3>Model Architecture and Training Parameters</h3>
+        <p>I used the following configuration for training the camping lamp:</p>
+        <ul>
+          <li><strong>Positional Encoding (coordinates):</strong> L_x = 12</li>
+          <li>
+            <strong>Positional Encoding (ray direction):</strong> L_rd = 5
+          </li>
+          <li><strong>Network Width:</strong> 300</li>
+          A slightly larger width than the lego model to capture more details.
+          <li><strong>Near-Far Bounds:</strong> 0.15 to 0.9 meters</li>
+          <li><strong>Learning Rate:</strong> 2e-4</li>
+          I found a smaller lr to be better since the model tended to overfit.
+          <li><strong>Number of Iterations:</strong> 2800</li>
+          <li><strong>Batch Size:</strong> 10k rays per iteration</li>
+          <li><strong>Number of Samples Per Ray:</strong> 64</li>
+        </ul>
+
+        <h3>Training Progression</h3>
+        <div class="flex-column">
+          <h4 style="margin-bottom: 0">Iteration 600</h4>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part2/lamp_val_iter600_1.jpg"
+                alt="Lamp Val Iter 600 Image 1"
+                style="height: 350px"
+              />
+            </div>
+            <div>
+              <img
+                src="images/part2/lamp_val_iter600_2.jpg"
+                alt="Lamp Val Iter 600 Image 2"
+                style="height: 350px"
+              />
+            </div>
+            <div>
+              <img
+                src="images/part2/lamp_val_iter600_3.jpg"
+                alt="Lamp Val Iter 600 Image 3"
+                style="height: 350px"
+              />
+            </div>
+          </div>
+
+          <h4 style="margin-bottom: 0">Iteration 1100</h4>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part2/lamp_val_iter1100_1.jpg"
+                alt="Lamp Val Iter 1100 Image 1"
+                style="height: 350px"
+              />
+            </div>
+            <div>
+              <img
+                src="images/part2/lamp_val_iter1100_2.jpg"
+                alt="Lamp Val Iter 1100 Image 2"
+                style="height: 350px"
+              />
+            </div>
+            <div>
+              <img
+                src="images/part2/lamp_val_iter1100_3.jpg"
+                alt="Lamp Val Iter 1100 Image 3"
+                style="height: 350px"
+              />
+            </div>
+          </div>
+
+          <h4 style="margin-bottom: 0">Iteration 1600</h4>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part2/lamp_val_iter1600_1.jpg"
+                alt="Lamp Val Iter 1600 Image 1"
+                style="height: 350px"
+              />
+            </div>
+            <div>
+              <img
+                src="images/part2/lamp_val_iter1600_2.jpg"
+                alt="Lamp Val Iter 1600 Image 2"
+                style="height: 350px"
+              />
+            </div>
+            <div>
+              <img
+                src="images/part2/lamp_val_iter1600_3.jpg"
+                alt="Lamp Val Iter 1600 Image 3"
+                style="height: 350px"
+              />
+            </div>
+          </div>
+
+          <h4 style="margin-bottom: 0">Iteration 2000</h4>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part2/lamp_val_iter2000_1.jpg"
+                alt="Lamp Val Iter 2000 Image 1"
+                style="height: 350px"
+              />
+            </div>
+            <div>
+              <img
+                src="images/part2/lamp_val_iter2000_2.jpg"
+                alt="Lamp Val Iter 2000 Image 2"
+                style="height: 350px"
+              />
+            </div>
+            <div>
+              <img
+                src="images/part2/lamp_val_iter2000_3.jpg"
+                alt="Lamp Val Iter 2000 Image 3"
+                style="height: 350px"
+              />
+            </div>
+          </div>
+
+          <h4 style="margin-bottom: 0">Iteration 2400</h4>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part2/lamp_val_iter2400_1.jpg"
+                alt="Lamp Val Iter 2400 Image 1"
+                style="height: 350px"
+              />
+            </div>
+            <div>
+              <img
+                src="images/part2/lamp_val_iter2400_2.jpg"
+                alt="Lamp Val Iter 2400 Image 2"
+                style="height: 350px"
+              />
+            </div>
+            <div>
+              <img
+                src="images/part2/lamp_val_iter2400_3.jpg"
+                alt="Lamp Val Iter 2400 Image 3"
+                style="height: 350px"
+              />
+            </div>
+          </div>
+
+          <h4 style="margin-bottom: 0">Iteration 2800</h4>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images/part2/lamp_val_iter2800_1.jpg"
+                alt="Lamp Val Iter 2800 Image 1"
+                style="height: 350px"
+              />
+            </div>
+            <div>
+              <img
+                src="images/part2/lamp_val_iter2800_2.jpg"
+                alt="Lamp Val Iter 2800 Image 2"
+                style="height: 350px"
+              />
+            </div>
+            <div>
+              <img
+                src="images/part2/lamp_val_iter2800_3.jpg"
+                alt="Lamp Val Iter 2800 Image 3"
+                style="height: 350px"
+              />
+            </div>
+          </div>
+        </div>
+
+        <h3>Metrics</h3>
+        <p>
+          Below are the PSNR and MSE curves during training. The final training
+          PSNR is 19.23 and the final validation PSNR is 14.02. While these
+          result are lower than the lego dataset, the model does capture the
+          overall shape and appearance of the lamp pretty well.
+        </p>
+        <div class="flex-column">
+          <div class="flex-row">
+            <div>
+              <img src="images/part2/lamp_psnr.jpg" alt="Lamp PSNR Curve" />
+            </div>
+            <div>
+              <img src="images/part2/lamp_mse.jpg" alt="Lamp MSE Curve" />
+            </div>
+          </div>
+        </div>
+
+        <h3>Final Novel View Rendering</h3>
+        <div class="flex-column">
+          <div class="flex-row">
+            <div style="text-align: center; width: 100%">
+              <img
+                src="images/part2/lamp_render.gif"
+                alt="Lamp Novel View Rendering"
+                style="height: 900px"
+              />
+            </div>
+          </div>
+        </div>
+        <p>
+          The results of this rendering is clearly worse than the lego dataset.
+          This is likely due to the training data. The camera images I captured
+          had varying distances from the center which made it hard for the model
+          to train. I tried many hyperparameters and near/far values and these
+          were the best I could come up with. Additionally, there were some
+          inconsistent lighting since I took these pictures in the morning. That
+          probably explains the white artifacts in the rendering. I also found
+          the model to overfit quickly, which made it harder to train for lots
+          of iterations.
+        </p>
+        <p>
+          Despite all of these challenges, the results are still impressive.
+          There were no training images for the angle where the object blocks
+          the tag, yet the rendering is able to infer a reasonable appearance
+          for that area. It was especially impressive how the model even
+          generated the ArUco tag through the clear part of the lamp in that
+          angle.
+        </p>
       </div>
     </main>
     <footer>
