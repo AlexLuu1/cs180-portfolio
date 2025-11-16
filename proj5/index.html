@@ -1,0 +1,1367 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CS 180 Portfolio: Project 5</title>
+    <link rel="stylesheet" href="../style.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Alex Luu's CS 180 Project Portfolio</h1>
+      <h2>Project 5: Fun With Diffusion Models!</h2>
+    </header>
+    <main class="project-content">
+      <p class="back-home"><a href="../index.html">&larr; Back to Home</a></p>
+
+      <div class="section">
+        <h2>Part A: The Power of Diffusion Models!</h2>
+        <p>
+          In this part of the project, I explored the DeepFloyd IF diffusion
+          model by testing different prompts, implementing sampling loops, and
+          using them for other tasks like image-to-image translation.
+        </p>
+        <p><strong>Random Seed Used: 100</strong></p>
+      </div>
+
+      <div class="section">
+        <h2>Part A.0: Play with the Model using Your Own Text Prompts</h2>
+        <p>
+          I experimented with the DeepFloyd diffusion model using custom text
+          prompts. I created various text prompts and generated their embedding
+          using the provided tool. Below are three of the prompts and their
+          results generated using different numbers of inference steps.
+        </p>
+        <p>
+          <strong
+            >Prompt 1: "a realistic image of lion resting under a tree at
+            sunset"</strong
+          >
+        </p>
+        <p>
+          <strong
+            >Prompt 2: "an artistic watercolor painting of the golden gate
+            bridge at sunset"</strong
+          >
+        </p>
+        <p>
+          <strong
+            >Prompt 3: "a realistic image of a emperor sitting in a golden
+            palace"</strong
+          >
+        </p>
+
+        <div class="flex-column">
+          <div class="flex-row">
+            <div>
+              <img
+                src="images_partA/a realistic image of lion resting under a tree at sunset_20.jpg"
+                alt="Lion 20 steps"
+                style="height: 300px"
+              />
+              <p>Prompt 1, 20 inference steps</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/an artistic watercolor painting of the golden gate bridge at sunset_20.jpg"
+                alt="Bridge 20 steps"
+                style="height: 300px"
+              />
+              <p>Prompt 2, 20 inference steps</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/a realistic image of a emperor sitting in a golden palace_20.jpg"
+                alt="Emperor 20 steps"
+                style="height: 300px"
+              />
+              <p>Prompt 3, 20 inference steps</p>
+            </div>
+          </div>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images_partA/a realistic image of lion resting under a tree at sunset_200.jpg"
+                alt="Lion 200 steps"
+                style="height: 300px"
+              />
+              <p>Prompt 1, 200 inference steps</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/an artistic watercolor painting of the golden gate bridge at sunset_200.jpg"
+                alt="Bridge 200 steps"
+                style="height: 300px"
+              />
+              <p>Prompt 2, 200 inference steps</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/a realistic image of a emperor sitting in a golden palace_200.jpg"
+                alt="Emperor 200 steps"
+                style="height: 300px"
+              />
+              <p>Prompt 3, 200 inference steps</p>
+            </div>
+          </div>
+        </div>
+
+        <p>
+          Generally, the images improve in quality with more inference steps.
+          For prompt 1, the image is very realistic at 20 iterations, but at
+          200, it becomes more cartoon-like. However, it also fixes the sunlight
+          issue, which could be the reason it does not follow the realism given
+          in the prompt. The model did really good for prompt 2 and 3 as it is
+          able to capture exactly what the prompt asks. For both, the 200 step
+          images have more detail.
+        </p>
+      </div>
+
+      <div class="section">
+        <h2>Part A.1.1: Implementing the Forward Process</h2>
+        <p>
+          The forward process adds noise to a clean image according to the
+          provided formula, using the model parameters. I implemented this
+          forward process and applied it to the Campanile image at different
+          noise levels. The formula is:
+        </p>
+        <p style="text-align: center; font-style: italic">
+          xₜ = √(ᾱₜ) · x₀ + √(1 - ᾱₜ) · ε
+        </p>
+        <p>
+          where ε is random noise sampled from a standard normal distribution,
+          and ᾱₜ (alpha_cumprod) is a noise schedule parameter. As expected, the
+          image becomes progressively noisier as t increases.
+        </p>
+
+        <div class="flex-column">
+          <div>
+            <img
+              src="images_partA/part_A.1.1_original.jpg"
+              alt="Original Campanile"
+              style="height: 300px"
+            />
+            <p>Original Campanile</p>
+          </div>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images_partA/part_A.1.1_250.jpg"
+                alt="Noisy Campanile t=250"
+                style="height: 300px"
+              />
+              <p>Noisy Campanile (t=250)</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.1_500.jpg"
+                alt="Noisy Campanile t=500"
+                style="height: 300px"
+              />
+              <p>Noisy Campanile (t=500)</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.1_750.jpg"
+                alt="Noisy Campanile t=750"
+                style="height: 300px"
+              />
+              <p>Noisy Campanile (t=750)</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Part A.1.2: Classical Denoising</h2>
+        <p>
+          I attempted to denoise the noisy Campanile images using Gaussian blur
+          filtering. This classical approach struggles to recover the original
+          image. The Gaussian blur can smooth out some noise but cannot
+          reconstruct lost details or structure.
+        </p>
+
+        <div class="flex-column">
+          <div class="flex-row">
+            <div>
+              <img
+                src="images_partA/part_A.1.1_250.jpg"
+                alt="Noisy t=250"
+                style="height: 300px"
+              />
+              <p>Noisy (t=250)</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.1_500.jpg"
+                alt="Noisy t=500"
+                style="height: 300px"
+              />
+              <p>Noisy (t=500)</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.1_750.jpg"
+                alt="Noisy t=750"
+                style="height: 300px"
+              />
+              <p>Noisy (t=750)</p>
+            </div>
+          </div>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images_partA/part_A.1.2_250.jpg"
+                alt="Gaussian blur t=250"
+                style="height: 300px"
+              />
+              <p>Gaussian Blur Denoising (t=250)</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.2_500.jpg"
+                alt="Gaussian blur t=500"
+                style="height: 300px"
+              />
+              <p>Gaussian Blur Denoising (t=500)</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.2_750.jpg"
+                alt="Gaussian blur t=750"
+                style="height: 300px"
+              />
+              <p>Gaussian Blur Denoising (t=750)</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Part A.1.3: One-Step Denoising</h2>
+        <p>
+          Using the pretrained diffusion model, I performed one-step denoising
+          by estimating the noise in the image and removing it to recover the
+          original. Since the model requires a text embedding, I used "a high
+          quality photo". The UNet predicts the noise ε, and we can estimate x₀
+          using:
+        </p>
+        <p style="text-align: center; font-style: italic">
+          x̂₀ = (xₜ - √(1 - ᾱₜ) · ε) / √(ᾱₜ)
+        </p>
+
+        <div class="flex-column">
+          <div class="flex-row">
+            <div>
+              <img
+                src="images_partA/part_A.1.1_250.jpg"
+                alt="Noisy t=250"
+                style="height: 300px"
+              />
+              <p>Noisy (t=250)</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.1_500.jpg"
+                alt="Noisy t=500"
+                style="height: 300px"
+              />
+              <p>Noisy (t=500)</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.1_750.jpg"
+                alt="Noisy t=750"
+                style="height: 300px"
+              />
+              <p>Noisy (t=750)</p>
+            </div>
+          </div>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images_partA/part_A.1.3_250.jpg"
+                alt="One-step denoised t=250"
+                style="height: 300px"
+              />
+              <p>One-Step Denoised (t=250)</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.3_500.jpg"
+                alt="One-step denoised t=500"
+                style="height: 300px"
+              />
+              <p>One-Step Denoised (t=500)</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.3_750.jpg"
+                alt="One-step denoised t=750"
+                style="height: 300px"
+              />
+              <p>One-Step Denoised (t=750)</p>
+            </div>
+          </div>
+          <div>
+            <img
+              src="images_partA/part_A.1.1_original.jpg"
+              alt="Original Campanile"
+              style="height: 300px"
+            />
+            <p>Original Campanile</p>
+          </div>
+        </div>
+
+        <p>
+          The diffusion model does a much better job than Gaussian blur,
+          producing more natural-looking images. However, quality degrades at
+          higher noise levels, as one-step denoising becomes more challenging
+          with more noise.
+        </p>
+      </div>
+
+      <div class="section">
+        <h2>Part A.1.4: Iterative Denoising</h2>
+        <p>
+          Instead of denoising in a single step, diffusion models are designed
+          to denoise iteratively. I implemented the iterative denoising loop
+          using strided timesteps (starting at t=990, stride of 30). At each
+          step, we denoise from timestep t to a slightly less noisy timestep t',
+          following the provided formula that relies on x̂₀. This formula can be
+          thought of as a linear interplotation between the one-shot prediction
+          and the current noisy image.
+        </p>
+
+        <h3>Denoising Progression</h3>
+        <div class="flex-column">
+          <div class="flex-row">
+            <div>
+              <img
+                src="images_partA/part_A.1.4_iterative_690.jpg"
+                alt="Iterative t=690"
+                style="height: 300px"
+              />
+              <p>t=690</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.4_iterative_540.jpg"
+                alt="Iterative t=540"
+                style="height: 300px"
+              />
+              <p>t=540</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.4_iterative_390.jpg"
+                alt="Iterative t=390"
+                style="height: 300px"
+              />
+              <p>t=390</p>
+            </div>
+          </div>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images_partA/part_A.1.4_iterative_240.jpg"
+                alt="Iterative t=240"
+                style="height: 300px"
+              />
+              <p>t=240</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.4_iterative_90.jpg"
+                alt="Iterative t=90"
+                style="height: 300px"
+              />
+              <p>t=90</p>
+            </div>
+          </div>
+        </div>
+
+        <h3>Comparison: Iterative vs One-Step vs Gaussian Blur</h3>
+        <div class="flex-column">
+          <div class="flex-row">
+            <div>
+              <img
+                src="images_partA/part_A.1.4_iterative.jpg"
+                alt="Iterative denoised"
+                style="height: 300px"
+              />
+              <p>Iterative Denoising</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.4_onestep.jpg"
+                alt="One-step denoised"
+                style="height: 300px"
+              />
+              <p>One-Step Denoising</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.4_gaussian.jpg"
+                alt="Gaussian blur"
+                style="height: 300px"
+              />
+              <p>Gaussian Blur Denoising</p>
+            </div>
+          </div>
+        </div>
+
+        <p>
+          Iterative denoising produces the best result and the gaussian produces
+          the worst. Although iterative denoising does produce some artifacts
+          not in the original image, it is more sharp compared to the one-step.
+          It recovers better details, like the trees.
+        </p>
+      </div>
+
+      <div class="section">
+        <h2>Part A.1.5: Diffusion Model Sampling</h2>
+        <p>
+          I generated images from scratch by starting with pure random noise
+          (sampled from a Gaussian distribution) and iteratively denoising it
+          using the prompt "a high quality photo".
+        </p>
+
+        <div class="flex-column">
+          <div class="flex-row">
+            <div>
+              <img
+                src="images_partA/part_A.1.5_im1.jpg"
+                alt="Sample 1"
+                style="height: 300px"
+              />
+              <p>Sample 1</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.5_im2.jpg"
+                alt="Sample 2"
+                style="height: 300px"
+              />
+              <p>Sample 2</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.5_im3.jpg"
+                alt="Sample 3"
+                style="height: 300px"
+              />
+              <p>Sample 3</p>
+            </div>
+          </div>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images_partA/part_A.1.5_im4.jpg"
+                alt="Sample 4"
+                style="height: 300px"
+              />
+              <p>Sample 4</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.5_im5.jpg"
+                alt="Sample 5"
+                style="height: 300px"
+              />
+              <p>Sample 5</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Part A.1.6: Classifier-Free Guidance (CFG)</h2>
+        <p>
+          To improve image quality (at the expense of diversity), I implemented
+          Classifier-Free Guidance. CFG computes both conditional and
+          unconditional noise estimates and combines them using:
+        </p>
+        <p style="text-align: center; font-style: italic">
+          ε = ε_u + γ · (ε_c - ε_u)
+        </p>
+        <p>
+          where γ is the CFG scale (I used γ=7), ε_c is the conditional noise
+          estimate, and ε_u is the unconditional noise estimate.
+        </p>
+
+        <div class="flex-column">
+          <div class="flex-row">
+            <div>
+              <img
+                src="images_partA/part_A.1.6_im1.jpg"
+                alt="CFG Sample 1"
+                style="height: 300px"
+              />
+              <p>Sample 1 with CFG</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.6_im2.jpg"
+                alt="CFG Sample 2"
+                style="height: 300px"
+              />
+              <p>Sample 2 with CFG</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.6_im3.jpg"
+                alt="CFG Sample 3"
+                style="height: 300px"
+              />
+              <p>Sample 3 with CFG</p>
+            </div>
+          </div>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images_partA/part_A.1.6_im4.jpg"
+                alt="CFG Sample 4"
+                style="height: 300px"
+              />
+              <p>Sample 4 with CFG</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.6_im5.jpg"
+                alt="CFG Sample 5"
+                style="height: 300px"
+              />
+              <p>Sample 5 with CFG</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Part A.1.7.0: Image-to-image Translation</h2>
+        <p>
+          In this section, I took a real image, adds noise to it, and then
+          denoise it. The amount of noise determines the strength of the edit.
+          Less noise added means a smaller edit. I used the prompt "a high
+          quality photo".
+        </p>
+
+        <h3>Campanile</h3>
+        <div class="flex-column">
+          <div class="flex-row">
+            <div>
+              <img
+                src="images_partA/part_A.1.7.0_campanile_960.jpg"
+                alt="Campanile i_start=1"
+                style="height: 300px"
+              />
+              <p>i_start=1</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.7.0_campanile_900.jpg"
+                alt="Campanile i_start=3"
+                style="height: 300px"
+              />
+              <p>i_start=3</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.7.0_campanile_840.jpg"
+                alt="Campanile i_start=5"
+                style="height: 300px"
+              />
+              <p>i_start=5</p>
+            </div>
+          </div>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images_partA/part_A.1.7.0_campanile_780.jpg"
+                alt="Campanile i_start=7"
+                style="height: 300px"
+              />
+              <p>i_start=7</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.7.0_campanile_690.jpg"
+                alt="Campanile i_start=10"
+                style="height: 300px"
+              />
+              <p>i_start=10</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.7.0_campanile_390.jpg"
+                alt="Campanile i_start=20"
+                style="height: 300px"
+              />
+              <p>i_start=20</p>
+            </div>
+          </div>
+        </div>
+
+        <h3>Cave</h3>
+        <div class="flex-column">
+          <div>
+            <img
+              src="images_partA/part_A.1.7.0_cave.jpg"
+              alt="Original Cave"
+              style="height: 300px"
+            />
+            <p>Original Cave Image</p>
+          </div>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images_partA/part_A.1.7.0_cave_960.jpg"
+                alt="Cave i_start=1"
+                style="height: 300px"
+              />
+              <p>i_start=1</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.7.0_cave_900.jpg"
+                alt="Cave i_start=3"
+                style="height: 300px"
+              />
+              <p>i_start=3</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.7.0_cave_840.jpg"
+                alt="Cave i_start=5"
+                style="height: 300px"
+              />
+              <p>i_start=5</p>
+            </div>
+          </div>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images_partA/part_A.1.7.0_cave_780.jpg"
+                alt="Cave i_start=7"
+                style="height: 300px"
+              />
+              <p>i_start=7</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.7.0_cave_690.jpg"
+                alt="Cave i_start=10"
+                style="height: 300px"
+              />
+              <p>i_start=10</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.7.0_cave_390.jpg"
+                alt="Cave i_start=20"
+                style="height: 300px"
+              />
+              <p>i_start=20</p>
+            </div>
+          </div>
+        </div>
+
+        <h3>Sunset</h3>
+        <div class="flex-column">
+          <div>
+            <img
+              src="images_partA/part_A.1.7.0_sunset.jpg"
+              alt="Original Sunset"
+              style="height: 300px"
+            />
+            <p>Original Sunset Image</p>
+          </div>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images_partA/part_A.1.7.0_sunset_960.jpg"
+                alt="Sunset i_start=1"
+                style="height: 300px"
+              />
+              <p>i_start=1</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.7.0_sunset_900.jpg"
+                alt="Sunset i_start=3"
+                style="height: 300px"
+              />
+              <p>i_start=3</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.7.0_sunset_840.jpg"
+                alt="Sunset i_start=5"
+                style="height: 300px"
+              />
+              <p>i_start=5</p>
+            </div>
+          </div>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images_partA/part_A.1.7.0_sunset_780.jpg"
+                alt="Sunset i_start=7"
+                style="height: 300px"
+              />
+              <p>i_start=7</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.7.0_sunset_690.jpg"
+                alt="Sunset i_start=10"
+                style="height: 300px"
+              />
+              <p>i_start=10</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.7.0_sunset_390.jpg"
+                alt="Sunset i_start=20"
+                style="height: 300px"
+              />
+              <p>i_start=20</p>
+            </div>
+          </div>
+        </div>
+
+        <p>
+          As i_start increases, the edits are less drastic and the output images
+          resembles the original more closely. The Cave image took longer to
+          resemble the original, but the Sunset image was fast to resemble the
+          original.
+        </p>
+      </div>
+
+      <div class="section">
+        <h2>Part A.1.7.1: Editing Hand-Drawn and Web Images</h2>
+        <p>
+          In this section, I applied image-to-image translation to a web image
+          and two hand-drawn images. The prompt used was "a high quality photo".
+        </p>
+
+        <h3>Web Image</h3>
+        <div class="flex-column">
+          <div>
+            <img
+              src="images_partA/part_A.1.7.1_web.jpg"
+              alt="Original web image"
+              style="height: 300px"
+            />
+            <p>Original Web Image</p>
+          </div>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images_partA/part_A.1.7.1_web_960.jpg"
+                alt="Web image i_start=1"
+                style="height: 300px"
+              />
+              <p>i_start=1</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.7.1_web_900.jpg"
+                alt="Web image i_start=3"
+                style="height: 300px"
+              />
+              <p>i_start=3</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.7.1_web_840.jpg"
+                alt="Web image i_start=5"
+                style="height: 300px"
+              />
+              <p>i_start=5</p>
+            </div>
+          </div>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images_partA/part_A.1.7.1_web_780.jpg"
+                alt="Web image i_start=7"
+                style="height: 300px"
+              />
+              <p>i_start=7</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.7.1_web_690.jpg"
+                alt="Web image i_start=10"
+                style="height: 300px"
+              />
+              <p>i_start=10</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.7.1_web_390.jpg"
+                alt="Web image i_start=20"
+                style="height: 300px"
+              />
+              <p>i_start=20</p>
+            </div>
+          </div>
+        </div>
+
+        <h3>Hand-Drawn Image 1</h3>
+        <div class="flex-column">
+          <div>
+            <img
+              src="images_partA/part_A.1.7.1_draw1.jpg"
+              alt="Original hand-drawn image 1"
+              style="height: 300px"
+            />
+            <p>Original Hand-Drawn Image 1</p>
+          </div>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images_partA/part_A.1.7.1_draw1_960.jpg"
+                alt="Draw1 i_start=1"
+                style="height: 300px"
+              />
+              <p>i_start=1</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.7.1_draw1_900.jpg"
+                alt="Draw1 i_start=3"
+                style="height: 300px"
+              />
+              <p>i_start=3</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.7.1_draw1_840.jpg"
+                alt="Draw1 i_start=5"
+                style="height: 300px"
+              />
+              <p>i_start=5</p>
+            </div>
+          </div>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images_partA/part_A.1.7.1_draw1_780.jpg"
+                alt="Draw1 i_start=7"
+                style="height: 300px"
+              />
+              <p>i_start=7</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.7.1_draw1_690.jpg"
+                alt="Draw1 i_start=10"
+                style="height: 300px"
+              />
+              <p>i_start=10</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.7.1_draw1_390.jpg"
+                alt="Draw1 i_start=20"
+                style="height: 300px"
+              />
+              <p>i_start=20</p>
+            </div>
+          </div>
+        </div>
+
+        <h3>Hand-Drawn Image 2</h3>
+        <div class="flex-column">
+          <div>
+            <img
+              src="images_partA/part_A.1.7.1_draw2.jpg"
+              alt="Original hand-drawn image 2"
+              style="height: 300px"
+            />
+            <p>Original Hand-Drawn Image 2</p>
+          </div>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images_partA/part_A.1.7.1_draw2_960.jpg"
+                alt="Draw2 i_start=1"
+                style="height: 300px"
+              />
+              <p>i_start=1</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.7.1_draw2_900.jpg"
+                alt="Draw2 i_start=3"
+                style="height: 300px"
+              />
+              <p>i_start=3</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.7.1_draw2_840.jpg"
+                alt="Draw2 i_start=5"
+                style="height: 300px"
+              />
+              <p>i_start=5</p>
+            </div>
+          </div>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images_partA/part_A.1.7.1_draw2_780.jpg"
+                alt="Draw2 i_start=7"
+                style="height: 300px"
+              />
+              <p>i_start=7</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.7.1_draw2_690.jpg"
+                alt="Draw2 i_start=10"
+                style="height: 300px"
+              />
+              <p>i_start=10</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.7.1_draw2_390.jpg"
+                alt="Draw2 i_start=20"
+                style="height: 300px"
+              />
+              <p>i_start=20</p>
+            </div>
+          </div>
+        </div>
+        <p>
+          All of the images at i_start=20 very closely resemble the original
+          images. The i_start=5,7 had pretty good creativity while still
+          resembling the original image.
+        </p>
+      </div>
+
+      <div class="section">
+        <h2>Part A.1.7.2: Inpainting</h2>
+        <p>
+          I implemented inpainting to create new content in masked regions while
+          preserving the original content outside the mask. The technique works
+          by running the diffusion denoising loop, but at every step after
+          obtaining x_(t), we "force" x_(t) to match the original image (with
+          noise t) in regions where the mask is 0:
+        </p>
+        <p style="text-align: center; font-style: italic">
+          x_(t) = m · x_(t) + (1 - m) · forward(x_orig, t)
+        </p>
+
+        <h3>Campanile Inpainting</h3>
+        <div class="flex-column">
+          <div class="flex-row">
+            <div>
+              <img
+                src="images_partA/part_A.1.7.2_campanille_mask.jpg"
+                alt="Campanile mask"
+                style="height: 300px"
+              />
+              <p>Edit Mask</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.7.2_campanille_mask_replace.jpg"
+                alt="Campanile area to fill"
+                style="height: 300px"
+              />
+              <p>Area to fill</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.7.2_campanile.jpg"
+                alt="Inpainted Campanile"
+                style="height: 300px"
+              />
+              <p>Inpainted Result</p>
+            </div>
+          </div>
+        </div>
+
+        <h3>Cave Inpainting</h3>
+        <div class="flex-column">
+          <div class="flex-row">
+            <div>
+              <img
+                src="images_partA/part_A.1.7.2_cave_mask.jpg"
+                alt="Cave mask"
+                style="height: 300px"
+              />
+              <p>Edit Mask</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.7.2_cave_mask_replace.jpg"
+                alt="Cave area to fill"
+                style="height: 300px"
+              />
+              <p>Area to fill</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.7.2_cave.jpg"
+                alt="Inpainted Cave"
+                style="height: 300px"
+              />
+              <p>Inpainted Result</p>
+            </div>
+          </div>
+        </div>
+
+        <h3>Sunset Inpainting</h3>
+        <div class="flex-column">
+          <div class="flex-row">
+            <div>
+              <img
+                src="images_partA/part_A.1.7.2_sunset_mask.jpg"
+                alt="Sunset mask"
+                style="height: 300px"
+              />
+              <p>Edit Mask</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.7.2_sunset_mask_replace.jpg"
+                alt="Sunset area to fill"
+                style="height: 300px"
+              />
+              <p>Area to fill</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.7.2_sunset.jpg"
+                alt="Inpainted Sunset"
+                style="height: 300px"
+              />
+              <p>Inpainted Result</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Part A.1.7.3: Text-Conditional Image-to-Image Translation</h2>
+        <p>
+          In this section, I guide the image projection with custom text
+          prompts. This allows for language-based control over the
+          transformation, projecting images onto specific concepts described by
+          the prompts while maintaining some characteristics of the original
+          image.
+        </p>
+
+        <h3>
+          Campanile with Prompt: "a realistic image of a student studying under
+          stress"
+        </h3>
+        <div class="flex-column">
+          <div class="flex-row">
+            <div>
+              <img
+                src="images_partA/part_A.1.7.3_campanile_960.jpg"
+                alt="Campanile i_start=1"
+                style="height: 300px"
+              />
+              <p>i_start=1</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.7.3_campanile_900.jpg"
+                alt="Campanile i_start=3"
+                style="height: 300px"
+              />
+              <p>i_start=3</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.7.3_campanile_840.jpg"
+                alt="Campanile i_start=5"
+                style="height: 300px"
+              />
+              <p>i_start=5</p>
+            </div>
+          </div>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images_partA/part_A.1.7.3_campanile_780.jpg"
+                alt="Campanile i_start=7"
+                style="height: 300px"
+              />
+              <p>i_start=7</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.7.3_campanile_690.jpg"
+                alt="Campanile i_start=10"
+                style="height: 300px"
+              />
+              <p>i_start=10</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.7.3_campanile_390.jpg"
+                alt="Campanile i_start=20"
+                style="height: 300px"
+              />
+              <p>i_start=20</p>
+            </div>
+          </div>
+        </div>
+
+        <h3>
+          Cave with Prompt: "an artistic oil painting of a lighthouse in the
+          middle of the sea"
+        </h3>
+        <div class="flex-column">
+          <div class="flex-row">
+            <div>
+              <img
+                src="images_partA/part_A.1.7.3_cave_960.jpg"
+                alt="Cave i_start=1"
+                style="height: 300px"
+              />
+              <p>i_start=1</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.7.3_cave_900.jpg"
+                alt="Cave i_start=3"
+                style="height: 300px"
+              />
+              <p>i_start=3</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.7.3_cave_840.jpg"
+                alt="Cave i_start=5"
+                style="height: 300px"
+              />
+              <p>i_start=5</p>
+            </div>
+          </div>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images_partA/part_A.1.7.3_cave_780.jpg"
+                alt="Cave i_start=7"
+                style="height: 300px"
+              />
+              <p>i_start=7</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.7.3_cave_690.jpg"
+                alt="Cave i_start=10"
+                style="height: 300px"
+              />
+              <p>i_start=10</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.7.3_cave_390.jpg"
+                alt="Cave i_start=20"
+                style="height: 300px"
+              />
+              <p>i_start=20</p>
+            </div>
+          </div>
+        </div>
+
+        <h3>Sunset with Prompt: "a realistic image of a peaceful fish pond"</h3>
+        <div class="flex-column">
+          <div class="flex-row">
+            <div>
+              <img
+                src="images_partA/part_A.1.7.3_sunset_960.jpg"
+                alt="Sunset i_start=1"
+                style="height: 300px"
+              />
+              <p>i_start=1</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.7.3_sunset_900.jpg"
+                alt="Sunset i_start=3"
+                style="height: 300px"
+              />
+              <p>i_start=3</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.7.3_sunset_840.jpg"
+                alt="Sunset i_start=5"
+                style="height: 300px"
+              />
+              <p>i_start=5</p>
+            </div>
+          </div>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images_partA/part_A.1.7.3_sunset_780.jpg"
+                alt="Sunset i_start=7"
+                style="height: 300px"
+              />
+              <p>i_start=7</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.7.3_sunset_690.jpg"
+                alt="Sunset i_start=10"
+                style="height: 300px"
+              />
+              <p>i_start=10</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.7.3_sunset_390.jpg"
+                alt="Sunset i_start=20"
+                style="height: 300px"
+              />
+              <p>i_start=20</p>
+            </div>
+          </div>
+        </div>
+
+        <p>
+          At lower noise levels (higher i_start), the results more closely
+          resemble the original images. At higher noise levels (lower i_start),
+          the model has more freedom to interpret the text prompt, resulting in
+          more dramatic transformations while still maintaining some structural
+          elements from the original images.
+        </p>
+      </div>
+
+      <div class="section">
+        <h2>Part A.1.8: Visual Anagrams</h2>
+        <p>
+          In this section, I created optical illusions with diffusion models.
+          These are images that appear as one scene normally, but reveal a
+          completely different scene when flipped upside down. The technique
+          works by denoising an image at step t with two different prompts
+          simultaneously, one for the normal orientation and one for the flipped
+          orientation. Then, I unflip it and average the noises.
+        </p>
+
+        <p>
+          <strong>Prompt (upright):</strong> "a realistic image of a emperor
+          sitting in a golden palace"<br />
+          <strong>Prompt (upside down):</strong> "a realistic medieval knight in
+          a medieval spaceship in space hovering over earth"
+        </p>
+        <div class="flex-column">
+          <div class="flex-row">
+            <div>
+              <img
+                src="images_partA/part_A.1.8_im1.jpg"
+                alt="Visual anagram 1 upright"
+                style="height: 300px"
+              />
+              <p>Upright View (Emperor)</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.8_im1.jpg"
+                alt="Visual anagram 1 flipped"
+                style="height: 300px; transform: rotate(180deg)"
+              />
+              <p>Upside Down View (Medieval Knight Space)</p>
+            </div>
+          </div>
+        </div>
+
+        <p>
+          <strong>Prompt (upright):</strong> "a realistic image of a student
+          studying under stress"<br />
+          <strong>Prompt (upside down):</strong> "a realistic image of a
+          peaceful fish pond"
+        </p>
+        <div class="flex-column">
+          <div class="flex-row">
+            <div>
+              <img
+                src="images_partA/part_A.1.8_im2.jpg"
+                alt="Visual anagram 2 upright"
+                style="height: 300px"
+              />
+              <p>Upright View (Student Studying)</p>
+            </div>
+            <div>
+              <img
+                src="images_partA/part_A.1.8_im2.jpg"
+                alt="Visual anagram 2 flipped"
+                style="height: 300px; transform: rotate(180deg)"
+              />
+              <p>Upside Down View (Fish Pond)</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Part A.1.9: Hybrid Images</h2>
+        <p>
+          In this section, I created hybrid images using diffusion models. The
+          technique combines low frequencies from one noise estimate with high
+          frequencies from another, creating images that appear different when
+          viewed from different distances. The algorithm denoises with two
+          different text prompts and combines them using a low-pass filter on
+          one estimate and a high-pass filter on the other.
+        </p>
+
+        <p>
+          <strong>Low Frequency Prompt:</strong> "an artistic oil painting of a
+          lighthouse in the middle of the sea"<br />
+          <strong>High Frequency Prompt:</strong> "a realistic futuristic city
+          at night"
+        </p>
+        <div class="flex-column">
+          <div>
+            <img
+              src="images_partA/part_A.1.9_im1.jpg"
+              alt="Hybrid image 1"
+              style="height: 300px"
+            />
+            <p>Lighthouse from far away, Futuristic City up close</p>
+          </div>
+        </div>
+
+        <p>
+          <strong>Low Frequency Prompt:</strong> "an artistic watercolor
+          painting of the golden gate bridge at sunset"<br />
+          <strong>High Frequency Prompt:</strong> "a realistic image of lion
+          resting under a tree at sunset"
+        </p>
+        <div class="flex-column">
+          <div>
+            <img
+              src="images_partA/part_A.1.9_im2.jpg"
+              alt="Hybrid image 2"
+              style="height: 300px"
+            />
+            <p>Golden Gate Bridge from far away, Lion up close</p>
+          </div>
+        </div>
+      </div>
+
+      <hr />
+
+      <div class="section">
+        <h2>Part B</h2>
+        <p>zzz</p>
+      </div>
+    </main>
+    <footer>
+      <p>&copy; 2025 Alex Luu</p>
+    </footer>
+  </body>
+</html>
