@@ -1356,8 +1356,394 @@
       <hr />
 
       <div class="section">
-        <h2>Part B</h2>
-        <p>zzz</p>
+        <h2>Part B: Flow Matching from Scratch!</h2>
+        <p>
+          In this part of the project, I trained multiple variations of a flow
+          model with the MNIST dataset.
+        </p>
+      </div>
+
+      <div class="section">
+        <h2>Part B.1.1: Implementing a Single-Step Denoising UNet</h2>
+        <p>
+          In this section, I implemented the provided UNet architecture using
+          PyTorch. This model consists of many downsampling blocks followed by
+          upsampling blocks with concatenations from the earlier parts of the
+          model.
+        </p>
+      </div>
+
+      <div class="section">
+        <h2>Part B.1.2.0: Noising Process</h2>
+        <p>
+          I visualized the noising process on MNIST digits using different noise
+          levels σ = [0.0, 0.2, 0.4, 0.5, 0.6, 0.8, 1.0]. The noising process
+          follows the formula:
+        </p>
+        <p style="text-align: center; font-style: italic">z = x + σ · ε</p>
+        <p>
+          where x is a clean MNIST sample, ε is random noise sampled from a
+          standard normal distribution N(0, 1), and σ controls the noise level.
+          As σ increases, the images become progressively noisier.
+        </p>
+
+        <div class="flex-column">
+          <div>
+            <img
+              src="images_partB/part_B.1.2.0_noisy_im.jpg"
+              alt="Noising process visualization"
+              style="height: 120px"
+            />
+            <p>MNIST Digits with Different Noise Levels σ</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Part B.1.2.1: Training</h2>
+        <p>
+          I trained a UNet denoiser to denoise images with noise level σ = 0.5
+          for 5 epochs. The model was trained using the MNIST training set with
+          batch size 256 and Adam optimizer with learning rate 1e-4. The
+          training objective was to minimize the L2 loss between the predicted
+          clean image and the actual clean image.
+        </p>
+
+        <h3>Training Loss Curve</h3>
+        <div class="flex-column">
+          <div>
+            <img
+              src="images_partB/part_B.1.2.1_training_curve.jpg"
+              alt="Training loss curve"
+              style="width: 500px"
+            />
+            <p>Training Loss Over Time</p>
+          </div>
+        </div>
+
+        <h3>Denoising Results on Test Set</h3>
+        <div class="flex-column">
+          <div>
+            <img
+              src="images_partB/part_B.1.2.1_noisy.jpg"
+              alt="Noisy test images"
+              style="height: 120px"
+            />
+            <p>Noisy Test Images</p>
+          </div>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images_partB/part_B.1.2.1_e1.jpg"
+                alt="Denoised results after epoch 1"
+                style="height: 120px"
+              />
+              <p>Denoised Results After Epoch 1</p>
+            </div>
+            <div>
+              <img
+                src="images_partB/part_B.1.2.1_e5.jpg"
+                alt="Denoised results after epoch 5"
+                style="height: 120px"
+              />
+              <p>Denoised Results After Epoch 5</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Part B.1.2.2: Out-of-Distribution Testing</h2>
+        <p>
+          I tested the denoiser trained on σ = 0.5 with different noise levels
+          to see how it generalizes to out-of-distribution noise. The same test
+          digit was used with varying noise levels σ = [0.0, 0.2, 0.4, 0.5, 0.6,
+          0.8, 1.0].
+        </p>
+
+        <div class="flex-column">
+          <div>
+            <img
+              src="images_partB/part_B.1.2.2.jpg"
+              alt="Out-of-distribution testing results"
+              style="height: 120px"
+            />
+            <p>Denoising Results for Different Noise Levels</p>
+          </div>
+        </div>
+
+        <p>
+          For the noise levels 0.0 to 0.6, the denoiser worked decently well
+          despite being trained only on σ = 0.5. However, at σ = 0.8 and above,
+          the denoiser started to struggle.
+        </p>
+      </div>
+
+      <div class="section">
+        <h2>Part B.1.2.3: Denoising Pure Noise</h2>
+        <p>
+          I trained a new denoiser to denoise pure Gaussian noise using the same
+          exact model structure and hyperparameters as the previous model. This
+          attempts to make denoising a generative task by starting with random
+          noise and generating digit-like images.
+        </p>
+
+        <h3>Training Loss Curve</h3>
+        <div class="flex-column">
+          <div>
+            <img
+              src="images_partB/part_B.1.2.3_training_curve.jpg"
+              alt="Training loss curve for pure noise"
+              style="width: 500px"
+            />
+            <p>Training Loss Over Time</p>
+          </div>
+        </div>
+
+        <h3>Denoising Results on Pure Noise</h3>
+        <div class="flex-column">
+          <div>
+            <img
+              src="images_partB/part_B.1.2.3_purenoise.jpg.jpg"
+              alt="Pure noise input"
+              style="height: 120px"
+            />
+            <p>Pure Noise Input</p>
+          </div>
+          <div class="flex-row">
+            <div>
+              <img
+                src="images_partB/part_B.1.2.3_e1.jpg"
+                alt="Denoised results after epoch 1"
+                style="height: 120px"
+              />
+              <p>Denoised Results After Epoch 1</p>
+            </div>
+            <div>
+              <img
+                src="images_partB/part_B.1.2.3_e5.jpg"
+                alt="Denoised results after epoch 5"
+                style="height: 120px"
+              />
+              <p>Denoised Results After Epoch 5</p>
+            </div>
+          </div>
+        </div>
+
+        <p>
+          The output seems to look like blobs with the shape of all the digits
+          stacked together. This is probably because the model cannot
+          differentiate the random noise input to any specific digit. During
+          training, the input is completely random noise and the label is a
+          specific digit. The model cannot tell the difference, so it just
+          learns to make something that looks like the average of all the digits
+          to minimize the loss.
+        </p>
+      </div>
+
+      <div class="section">
+        <h2>Part B.2.1: Adding Time Conditioning to UNet</h2>
+        <p>
+          I modified the UNet architecture to accept time conditioning by adding
+          FCBlock (fully-connected block) modules. The time t is embedded
+          through two FCBlocks and used to modulate the first 2 concat layers.
+          This allows the model to predict different flows depending on the
+          timestep.
+        </p>
+      </div>
+
+      <div class="section">
+        <h2>Part B.2.2: Training the Time-Conditioned UNet</h2>
+        <p>
+          I trained the time-conditioned UNet to predict the flow from noisy
+          images to clean images. The model was trained on MNIST with batch size
+          64, Adam optimizer with initial learning rate 1e-2, and exponential
+          learning rate decay (gamma = 0.1^(1/num_epoch)). The training
+          objective is to predict the flow:
+        </p>
+        <p style="text-align: center; font-style: italic">flow = x - z</p>
+        <p>
+          where z = t·x + (1-t)·ε is the interpolated noisy image at time t.
+        </p>
+
+        <h3>Training Loss Curve</h3>
+        <div class="flex-column">
+          <div>
+            <img
+              src="images_partB/part_B.2.2_training_curve.jpg"
+              alt="Training loss curve for time-conditioned UNet"
+              style="width: 500px"
+            />
+            <p>Training Loss Over Time</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Part B.2.3: Sampling from the Time-Conditioned UNet</h2>
+        <p>
+          I sampled from the time-conditioned UNet using the iterative denoising
+          algorithm. Starting from pure noise, the model iteratively predicts
+          the flow and updates the image over multiple timesteps. Results are
+          shown after 1, 5, and 10 epochs of training.
+        </p>
+
+        <div class="flex-column">
+          <div>
+            <img
+              src="images_partB/part_B.2.3_e1.jpg"
+              alt="Sampling results after epoch 1"
+              style="height: 200px"
+            />
+            <p>Sampling Results After Epoch 1</p>
+          </div>
+          <div>
+            <img
+              src="images_partB/part_B.2.3_e5.jpg"
+              alt="Sampling results after epoch 5"
+              style="height: 200px"
+            />
+            <p>Sampling Results After Epoch 5</p>
+          </div>
+          <div>
+            <img
+              src="images_partB/part_B.2.3_e10.jpg"
+              alt="Sampling results after epoch 10"
+              style="height: 200px"
+            />
+            <p>Sampling Results After Epoch 10</p>
+          </div>
+        </div>
+
+        <p>
+          The results show progressive improvement from epoch 1 to 10. By epoch
+          10, reasonably legible digits emerge, though they are not perfect.
+        </p>
+      </div>
+
+      <div class="section">
+        <h2>Part B.2.4: Adding Class-Conditioning to UNet</h2>
+        <p>
+          I further modified the UNet to accept class conditioning. The class is
+          provided as a one-hot vector (10 dimensions for digits 0-9) and
+          embedded through two additional FCBlocks. During training, I
+          implemented dropout where some percentage of the class conditioning is
+          set to zero to enable classifier-free guidance during sampling. The
+          conditioning is applied as:
+        </p>
+        <p style="text-align: center; font-style: italic">
+          unflatten = c1 x unflatten + t1<br />
+          up1 = c2 x up1 + t2
+        </p>
+      </div>
+
+      <div class="section">
+        <h2>Part B.2.5: Training the Class-Conditioned UNet</h2>
+        <p>
+          I trained the class-conditioned UNet using the same hyperparameters as
+          the time-only model, with the addition of class conditioning and
+          dropout for unconditional training. This allows the model to learn
+          both conditional and unconditional generation.
+        </p>
+
+        <h3>Training Loss Curve</h3>
+        <div class="flex-column">
+          <div>
+            <img
+              src="images_partB/part_B.2.5_training_curve.jpg"
+              alt="Training loss curve for class-conditioned UNet"
+              style="width: 500px"
+            />
+            <p>Training Loss Over Time</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Part B.2.6: Sampling from the Class-Conditioned UNet</h2>
+        <p>
+          I sampled from the class-conditioned UNet using classifier-free
+          guidance with scale γ = 5. The sampling algorithm pushes the images
+          towards a stronger classification with the scaling factor. Results are
+          shown after 1, 5, and 10 epochs of training.
+        </p>
+
+        <h3>With Learning Rate Scheduler</h3>
+        <div class="flex-column">
+          <div>
+            <img
+              src="images_partB/part_B.2.6_e1.jpg"
+              alt="Class-conditioned sampling after epoch 1"
+              style="height: 200px"
+            />
+            <p>Epoch 1</p>
+          </div>
+          <div>
+            <img
+              src="images_partB/part_B.2.6_e5.jpg"
+              alt="Class-conditioned sampling after epoch 5"
+              style="height: 200px"
+            />
+            <p>Epoch 5</p>
+          </div>
+          <div>
+            <img
+              src="images_partB/part_B.2.6_e10.jpg"
+              alt="Class-conditioned sampling after epoch 10"
+              style="height: 200px"
+            />
+            <p>Epoch 10</p>
+          </div>
+        </div>
+
+        <p>
+          The class-conditioned model produces significantly better results than
+          the time-only model. By epoch 10, the generated digits are clear,
+          distinct, and correctly correspond to their target classes.
+        </p>
+
+        <h3>Removing the Learning Rate Scheduler</h3>
+        <p>
+          I experimented with training without the exponential learning rate
+          scheduler to see if we could maintain similar performance with a
+          simpler training setup. To compensate for the loss of the scheduler, I
+          used a smaller constant learning rate of 5e-5 (instead of starting at
+          1e-2). This prevents the model from overshooting early in training
+          while still allowing sufficient learning throughout.
+        </p>
+
+        <div class="flex-column">
+          <div>
+            <img
+              src="images_partB/part_B.2.6_nosch_e1.jpg"
+              alt="No scheduler sampling after epoch 1"
+              style="height: 200px"
+            />
+            <p>Epoch 1 (No Scheduler)</p>
+          </div>
+          <div>
+            <img
+              src="images_partB/part_B.2.6_nosch_e5.jpg"
+              alt="No scheduler sampling after epoch 5"
+              style="height: 200px"
+            />
+            <p>Epoch 5 (No Scheduler)</p>
+          </div>
+          <div>
+            <img
+              src="images_partB/part_B.2.6_nosch_e10.jpg"
+              alt="No scheduler sampling after epoch 10"
+              style="height: 200px"
+            />
+            <p>Epoch 10 (No Scheduler)</p>
+          </div>
+        </div>
+
+        <p>
+          The results show that removing the learning rate scheduler while using
+          a smaller constant learning rate produces comparable quality to the
+          scheduled version.
+        </p>
       </div>
     </main>
     <footer>
